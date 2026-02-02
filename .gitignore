@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Persistent data (not tracked)
+data/
+logs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
