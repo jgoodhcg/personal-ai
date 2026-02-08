@@ -1,11 +1,11 @@
 ---
 title: "Phase 4: Custom Chat Fork"
-status: idea
+status: draft
 description: "Fork Open WebUI when upstream doesn't meet needs"
 tags: [area/chat, type/enhancement]
 priority: low
 created: 2025-02-02
-updated: 2025-02-02
+updated: 2026-02-08
 depends-on: [phase-1-foundation.md]
 ---
 

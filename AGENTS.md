@@ -6,6 +6,35 @@ Follows AGENT_BLUEPRINT.md
 
 Self-hosted AI platform on a single VPS. Open WebUI for chat interface, SSH access for CLI agents (claude-code, gemini-cli, etc.), and future task automation. Docker-based, SQLite for storage, Tailscale for access.
 
+## Stack
+
+- Bash + shell scripts
+- Docker Compose
+- SQLite (Open WebUI persistent data)
+- Single VPS deployment with Tailscale-only access
+
+## Commit Trailer Template
+
+Store a template, not concrete runtime values.
+
+```text
+Co-authored-by: [AI_PRODUCT_NAME] <[AI_PRODUCT_EMAIL]>
+AI-Provider: [AI_PROVIDER]
+AI-Product: [AI_PRODUCT_LINE]
+AI-Model: [AI_MODEL]
+```
+
+Template rules:
+- `AI_PRODUCT_LINE` must be one of: `codex|claude|gemini|opencode`.
+- Determine `AI_PRODUCT_LINE` from current session:
+  - Codex or ChatGPT coding agent -> `codex`
+  - Claude -> `claude`
+  - Gemini -> `gemini`
+  - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
+- Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
+- `AI_PRODUCT_EMAIL` may follow a project pattern such as `[AI_PRODUCT_LINE]@ai.example.com`.
+- Fill this template at commit time; do not persist filled values in `AGENTS.md`.
+
 ## Validation Commands
 
 | Level | Command | When |
@@ -39,6 +68,12 @@ Self-hosted AI platform on a single VPS. Open WebUI for chat interface, SSH acce
 - Knowledge base in `knowledge/` is version controlled
 - No secrets in repo — use .env (copy from .env.example)
 - VPS access via Tailscale only, no public ports
+
+## References
+
+- For operating model, see `AGENT_BLUEPRINT.md`
+- For executable work units, see `roadmap/index.md`
+- For deployment and usage context, see `README.md`
 
 ## Key Files
 

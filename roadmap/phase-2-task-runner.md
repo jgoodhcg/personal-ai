@@ -1,11 +1,11 @@
 ---
 title: "Phase 2: Task Runner"
-status: idea
+status: draft
 description: "Cron-scheduled Python scripts for automated daily/weekly tasks"
 tags: [area/automation, type/feature]
 priority: medium
 created: 2025-02-02
-updated: 2025-02-02
+updated: 2026-02-08
 depends-on: [phase-1-foundation.md]
 ---
 

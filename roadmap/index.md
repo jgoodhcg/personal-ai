@@ -11,7 +11,7 @@ Phase 1: Foundation — Get Open WebUI running on VPS with Tailscale access and 
 
 ## Work Units
 
-See individual `*.md` files in this directory. Each contains frontmatter with status, priority, and other metadata.
+See individual `*.md` files in this directory. Use `draft` while clarifying and `ready` when autonomous execution can begin.
 
 ## Quick Ideas
 

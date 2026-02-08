@@ -1,11 +1,11 @@
 ---
 title: "Phase 3: Dashboard"
-status: idea
+status: draft
 description: "Minimal web UI for task visibility and log viewing"
 tags: [area/ui, type/feature]
 priority: low
 created: 2025-02-02
-updated: 2025-02-02
+updated: 2026-02-08
 depends-on: [phase-2-task-runner.md]
 ---
 
