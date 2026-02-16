@@ -1,6 +1,6 @@
 ---
 title: "Work Unit Title"
-status: draft
+status: draft | ready | active | done | dropped
 description: "One line"
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -35,4 +35,4 @@ priority: medium
 
 ## Open Questions (draft only)
 
-[Unresolved decisions or unknowns.]
+[Unresolved items. Clear this section before moving to ready.]

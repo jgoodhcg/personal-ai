@@ -69,9 +69,18 @@ Template rules:
 - No secrets in repo — use .env (copy from .env.example)
 - VPS access via Tailscale only, no public ports
 
+## Decision Artifacts
+
+- For high-impact or irreversible decisions, record a decision matrix in `.decisions/[name].json`.
+- Use `matrix-reloaded` format for structured comparison.
+- Do not run `matrix-reloaded` CLI commands from agent sessions; use project-provided matrix instructions/schema.
+- Optional: add `.decisions/[name].md` for human-readable narrative context.
+- Treat the JSON decision matrix as the authoritative record.
+
 ## References
 
 - For operating model, see `AGENT_BLUEPRINT.md`
+- For decision records and optional matrix format, see `AGENT_BLUEPRINT.md` section `Decision Artifacts [BP-DECISIONS]`.
 - For executable work units, see `roadmap/index.md`
 - For deployment and usage context, see `README.md`
 

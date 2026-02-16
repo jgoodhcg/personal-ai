@@ -5,45 +5,50 @@ description: "Open WebUI on VPS with Tailscale access and CLI agent environment"
 tags: [area/infrastructure, type/foundation]
 priority: high
 created: 2025-02-02
-updated: 2025-02-02
+updated: 2026-02-15
 ---
 
 # Phase 1: Foundation
 
-## Problem / Intent
+## Intent
 
 Need a self-hosted AI chat interface accessible from any device, plus SSH access for running CLI agents against a shared workspace.
 
-## Constraints
+## Specification
 
 - Single VPS, budget-friendly
 - All data portable (SQLite, files on disk)
 - Access via Tailscale only (no public exposure)
 - Must support multiple AI providers (Claude, OpenAI, Gemini, xAI)
 
-## Proposed Approach
+## Validation
 
-1. Provision VPS with Docker and Tailscale
-2. Create `agent` user for CLI access
-3. Deploy Open WebUI via docker-compose
-4. Expose via `tailscale serve`
-5. Set up knowledge base directory for RAG
+- [x] Open WebUI runs locally via Docker Compose.
+- [x] Initial provider chats validated for OpenAI and z.ai models.
+- [ ] VPS provisioning validated end-to-end with Tailscale-only access.
+- [ ] Agent SSH workflow validated on VPS.
+- [ ] Multi-provider chat validation completed for all required providers.
 
-## Checklist
+## Scope
 
-- [ ] Provision VPS
-- [ ] Run setup.sh
-- [ ] Configure .env with API keys
-- [ ] Start Open WebUI
-- [ ] Verify Tailscale access
-- [ ] Test chat with each provider
-- [ ] SSH as agent, verify CLI tools work
-- [ ] Add initial knowledge base files
+In scope:
+- Provision/standardize base VPS environment.
+- Stand up Open WebUI with persistent data.
+- Establish Tailscale-only access pattern.
+- Confirm CLI-agent workflow and workspace structure.
 
-## Open Questions
+Out of scope:
+- Custom UI or Open WebUI fork work.
+- Automated task runner and dashboard features.
 
-None currently.
+## Context
+
+- Deployment structure target: `/home/agent/personal-ai/` with sibling `workspace/` and `projects/`.
+- Decision artifact for current platform direction: `.decisions/chat-interface-off-the-shelf-selection.json`.
+- Launch hardening and acceptance execution unit: `roadmap/phase-1-launch-readiness.md`.
 
 ## Notes
 
-Structure decided: repo lives at `/home/agent/personal-ai/`, with `workspace/` and `projects/` as siblings outside the repo.
+Execution order:
+1. Complete this foundation unit on VPS.
+2. Execute launch-readiness checks and hardening.

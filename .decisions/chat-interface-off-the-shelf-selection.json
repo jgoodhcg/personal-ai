@@ -1,0 +1,230 @@
+{
+  "decision": {
+    "statement": "Which off-the-shelf chat interface should we use for this project's launch?",
+    "description": "Scope: single VPS, self-hosted, Tailscale-only access, multi-provider chat, privacy control, history import/analysis, low ops burden, and strong mobile browser rendering. This matrix is qualitative (no weighted scoring)."
+  },
+  "options": [
+    {
+      "label": "Open WebUI",
+      "description": "Current baseline; Docker + SQLite; fastest operational path."
+    },
+    {
+      "label": "LibreChat",
+      "description": "Strong multi-provider support; heavier stack."
+    },
+    {
+      "label": "AnythingLLM",
+      "description": "RAG-centric platform; less chat-first for this phase."
+    },
+    {
+      "label": "LobeChat",
+      "description": "Polished UX; heavier infrastructure footprint."
+    },
+    {
+      "label": "Build simple custom UI",
+      "description": "Maximum control; highest implementation burden."
+    }
+  ],
+  "criteria": [
+    {
+      "name": "Launch readiness",
+      "cells": {
+        "Open WebUI": {
+          "text": "Ready now with minimal integration risk",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Strong option, but more setup than current baseline",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Deployable, but less aligned to chat-first launch",
+          "color": "yellow"
+        },
+        "LobeChat": {
+          "text": "Heavier stack and setup complexity",
+          "color": "red"
+        },
+        "Build simple custom UI": {
+          "text": "Not launch-ready without significant build effort",
+          "color": "red"
+        }
+      }
+    },
+    {
+      "name": "History import ease",
+      "cells": {
+        "Open WebUI": {
+          "text": "Practical import/export path",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Good migration workflows",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Weaker fit for chat-history migration",
+          "color": "red"
+        },
+        "LobeChat": {
+          "text": "Unclear or elevated migration effort",
+          "color": "red"
+        },
+        "Build simple custom UI": {
+          "text": "No import until migration tooling is built",
+          "color": "red"
+        }
+      }
+    },
+    {
+      "name": "History analysis access",
+      "cells": {
+        "Open WebUI": {
+          "text": "Local SQLite and exports are analysis-friendly",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Solid export and storage access",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Usable but less focused on chat-history analytics",
+          "color": "yellow"
+        },
+        "LobeChat": {
+          "text": "Possible with more infra and query work",
+          "color": "yellow"
+        },
+        "Build simple custom UI": {
+          "text": "Fully controllable schema and analytics pipelines",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Model/API compatibility incl. GPT-5",
+      "cells": {
+        "Open WebUI": {
+          "text": "Works, but endpoint or model routing may need tuning",
+          "color": "yellow"
+        },
+        "LibreChat": {
+          "text": "Strong compatibility posture",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Less ideal for this specific chat/API requirement",
+          "color": "red"
+        },
+        "LobeChat": {
+          "text": "Moderate compatibility with higher ops cost",
+          "color": "yellow"
+        },
+        "Build simple custom UI": {
+          "text": "Direct control over endpoint selection and adapters",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Privacy and data-capture control",
+      "cells": {
+        "Open WebUI": {
+          "text": "Strong local-first posture with configurable telemetry",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Good control with self-hosted deployment",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Acceptable, but needs careful configuration review",
+          "color": "yellow"
+        },
+        "LobeChat": {
+          "text": "Acceptable, with more moving parts",
+          "color": "yellow"
+        },
+        "Build simple custom UI": {
+          "text": "Maximum control by design",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Single-VPS operations simplicity",
+      "cells": {
+        "Open WebUI": {
+          "text": "Lowest ops overhead in current stack",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Workable but involves heavier services",
+          "color": "yellow"
+        },
+        "AnythingLLM": {
+          "text": "Moderate operational burden",
+          "color": "green"
+        },
+        "LobeChat": {
+          "text": "High ops burden among off-the-shelf choices",
+          "color": "red"
+        },
+        "Build simple custom UI": {
+          "text": "Ops and feature ownership overhead",
+          "color": "red"
+        }
+      }
+    },
+    {
+      "name": "Portability and extensibility",
+      "cells": {
+        "Open WebUI": {
+          "text": "Good portability with a reasonable extension path",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Good portability and ecosystem support",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Moderate portability for this use case",
+          "color": "yellow"
+        },
+        "LobeChat": {
+          "text": "Strong extensibility, but infrastructure-heavy",
+          "color": "green"
+        },
+        "Build simple custom UI": {
+          "text": "Full control and portability of architecture",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Mobile browser experience",
+      "cells": {
+        "Open WebUI": {
+          "text": "Generally good responsive behavior in mobile browsers",
+          "color": "green"
+        },
+        "LibreChat": {
+          "text": "Good mobile web experience; verify provider-specific views",
+          "color": "green"
+        },
+        "AnythingLLM": {
+          "text": "Usable on mobile web, but UX focus is less chat-centric",
+          "color": "yellow"
+        },
+        "LobeChat": {
+          "text": "Strong UI potential on mobile, pending heavier deploy setup",
+          "color": "green"
+        },
+        "Build simple custom UI": {
+          "text": "Can be excellent on mobile, but only after dedicated UI work",
+          "color": "yellow"
+        }
+      }
+    }
+  ]
+}

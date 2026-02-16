@@ -7,16 +7,21 @@ goal: "Self-hosted AI platform with chat interface, CLI agents, and autonomous t
 
 ## Current Focus
 
-Phase 1: Foundation — Get Open WebUI running on VPS with Tailscale access and SSH for CLI agents.
+- Phase 1 foundation is in progress.
+- Immediate execution target: `roadmap/phase-1-launch-readiness.md` (`ready`) to harden launch with API/mobile/privacy acceptance checks.
 
 ## Work Units
 
-See individual `*.md` files in this directory. Use `draft` while clarifying and `ready` when autonomous execution can begin.
+- `phase-1-foundation.md` (`active`): infrastructure baseline on VPS/Tailscale + Open WebUI.
+- `phase-1-launch-readiness.md` (`ready`): launch gating checks and hardening for Open WebUI.
+- `phase-2-task-runner.md` (`draft`): scheduled automation jobs after foundation is stable.
+- `phase-3-dashboard.md` (`draft`): optional visibility UI for task runs.
+- `phase-4-custom-fork.md` (`draft`): only if upstream Open WebUI cannot meet requirements.
 
 ## Quick Ideas
 
 Ideas not yet promoted to work units:
 
-- Chat history import from ChatGPT/Claude/Gemini exports
+- CLI script to normalize chat exports into a single analysis schema
 - Ollama for local models (resource constraints TBD)
 - Mobile shortcut for quick capture

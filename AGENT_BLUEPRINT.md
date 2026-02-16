@@ -203,9 +203,18 @@ Template rules:
 
 - [constraints, data sensitivity, architectural boundaries]
 
+## Decision Artifacts
+
+- For high-impact or irreversible decisions, record a decision matrix in `.decisions/[name].json`.
+- Use `matrix-reloaded` format for structured comparison.
+- Do not run `matrix-reloaded` CLI commands from agent sessions; use project-provided matrix instructions/schema.
+- Optional: add `.decisions/[name].md` for human-readable narrative context.
+- Treat the JSON decision matrix as the authoritative record.
+
 ## References
 
 - For [topic], see `[doc path]`
+- For decision records and optional matrix format, see `AGENT_BLUEPRINT.md` section `Decision Artifacts [BP-DECISIONS]`.
 
 ## Key Files
 
@@ -382,16 +391,20 @@ Optional. Use for high-impact or irreversible decisions, or when revisiting the 
 
 ### Structure
 
-Every decision has a markdown file. Optionally add a JSON file for matrix visualization.
+Every decision has a JSON matrix file. Optionally add a markdown companion for narrative context.
 
 ```
 .decisions/
-├── database-choice.md       # Required: the decision record
-├── database-choice.json     # Optional: matrix-reloaded format
-└── auth-strategy.md
+├── database-choice.json     # Required: authoritative matrix-reloaded decision record
+├── database-choice.md       # Optional: human-readable summary
+└── auth-strategy.json
 ```
 
-### Markdown Format (required)
+### JSON Matrix (required)
+
+For each decision, add a `.json` file using `matrix-reloaded` format. Do not execute `matrix-reloaded` CLI commands from agent sessions; use project-provided instructions/schema for the expected JSON structure. The JSON matrix is the authoritative decision record.
+
+### Markdown Format (optional)
 
 ```markdown
 # Decision: [Title]
@@ -421,10 +434,6 @@ Every decision has a markdown file. Optionally add a JSON file for matrix visual
 
 [What changes. What to watch for.]
 ```
-
-### Decision Matrix (optional)
-
-For structured comparison, add a `.json` file using `matrix-reloaded` format. Run `matrix-reloaded --instructions` for schema details. The JSON provides visualization; the markdown remains the authoritative record.
 
 ---
 
