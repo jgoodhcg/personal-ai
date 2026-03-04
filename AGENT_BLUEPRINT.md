@@ -1,5 +1,5 @@
 ---
-version: "1.3.0"
+version: "1.4.5"
 ---
 
 # Agent Blueprint
@@ -24,6 +24,7 @@ Use these IDs in alignment reports for deterministic, machine-checkable outcomes
 **SHOULD**
 - `BP-CORE-07` Keep policy lean; prefer references over duplicated rules.
 - `BP-CORE-08` Capture AI commit identity once per repo in `AGENTS.md` to avoid repeated prompts.
+- `BP-CORE-10` Capture user interaction profile in `AGENTS.md` on project init or alignment.
 
 ---
 
@@ -69,16 +70,50 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 - If missing, ask once before first commit in a repo.
 - Never hardcode runtime values (`Co-authored-by`, `AI-Provider`, `AI-Product`, `AI-Model`) in `AGENTS.md`.
 - Use product-line contributor identities for `Co-authored-by`:
-  - `codex`: Codex or ChatGPT coding agent sessions
-  - `claude`: Claude sessions
-  - `gemini`: Gemini sessions
-  - `opencode`: OpenCode sessions (even when provider/model vary, including z.ai)
+  - `codex`: `Codex <codex@users.noreply.github.com>`
+  - `claude`: `Claude <claude@users.noreply.github.com>`
+  - `gemini`: `Gemini <google-gemini@users.noreply.github.com>`
+  - `opencode`: `GLM <zai-org@users.noreply.github.com>`
 - Derive `AI-Provider` and `AI-Model` from runtime context at commit time.
 - Include trailers when committing:
   - `Co-authored-by: [runtime product identity] <[runtime product email]>`
   - `AI-Provider: [runtime provider name]` (optional; include only if known)
   - `AI-Product: [runtime product line]` (optional; include only if known)
   - `AI-Model: [runtime model name]` (optional; include only if known)
+
+### User Profile [BP-WF-PROFILE]
+
+Calibrate agent interactions based on user context. Store in a git-ignored file (e.g., `.agent-profile.md`) referenced from `AGENTS.md`.
+
+**Prompting conditions:**
+1. **No profile exists** → Prompt to create one
+2. **Profile exists but incomplete** (missing fields from current blueprint guidance) → Prompt to fill gaps
+3. **Profile complete** → Ask if user wants to update
+
+**Profile dimensions:**
+- Experience level (beginner/intermediate/advanced per domain)
+- Familiar languages/frameworks
+- Explanation preference (brief/standard/thorough; explain unknowns/ask first)
+- Communication style (code-focused/narrative/casual/formal; high-level vs drill-down)
+- Team context (solo/collaborative; target audience if relevant)
+
+**Sample questions:**
+- "What's your experience level with [project's primary domain]?"
+- "Which languages/frameworks are you comfortable with?"
+- "Do you prefer brief confirmations or detailed explanations?"
+- "Should I explain things you may not know, or ask first?"
+- "Any communication preferences (formal/casual, code vs prose, high-level first)?"
+- "Is this solo work or a team project?"
+
+**Calibration:**
+- Explain more for beginners; assume familiarity for experts
+- Match explanation depth to stated preference
+- Adapt communication style to user's preference
+- Consider team context for commit/message conventions
+
+**When to check:**
+- Project initialization
+- Alignment/compliance requests when blueprint is re-applied
 
 ---
 
@@ -87,6 +122,7 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 1. Copy this file as `AGENT_BLUEPRINT.md`.
 2. Create `AGENTS.md` using the template below.
 3. Create `roadmap/index.md`.
+4. Optionally create agent-specific wrappers (`CLAUDE.md`, `GEMINI.md`, etc.) using the wrapper template.
 
 Agent-specific files (`CLAUDE.md`, `GEMINI.md`, etc.) are optional and should be thin pointers to `AGENTS.md`.
 
@@ -143,7 +179,7 @@ Use this format exactly:
 ```markdown
 # AGENTS
 
-Follows AGENT_BLUEPRINT.md
+Follows `AGENT_BLUEPRINT.md` (version: [BLUEPRINT_VERSION])
 
 ## Project Overview
 
@@ -175,7 +211,11 @@ Template rules:
   - Gemini -> `gemini`
   - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
 - Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
-- `AI_PRODUCT_EMAIL` may follow a project pattern such as `[AI_PRODUCT_LINE]@ai.example.com`.
+- `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` format:
+  - `codex` -> `Codex <codex@users.noreply.github.com>`
+  - `claude` -> `Claude <claude@users.noreply.github.com>`
+  - `gemini` -> `Gemini <google-gemini@users.noreply.github.com>`
+  - `opencode` -> `GLM <zai-org@users.noreply.github.com>`
 - Fill this template at commit time; do not persist filled values in `AGENTS.md`.
 
 ## Validation Commands
@@ -219,7 +259,30 @@ Template rules:
 ## Key Files
 
 - `[path]` — [purpose]
+
+## User Profile (optional)
+
+See `.agent-profile.md` (git-ignored) for interaction preferences. Create on project init or alignment.
 ```
+
+---
+
+## Agent-Specific Wrapper Template [BP-AGENT-WRAPPER]
+
+Optional. Create thin pointers for agent-specific entrypoints (`CLAUDE.md`, `GEMINI.md`, etc.):
+
+```markdown
+# [Agent Name]
+
+See `AGENTS.md` for project policies and operating rules.
+
+## Agent-Specific Instructions
+
+- [Instruction specific to this agent, if any]
+- [e.g., tool preferences, model-specific behavior, constraints]
+```
+
+Keep minimal. Defer to `AGENTS.md` for all shared policy.
 
 ---
 
@@ -434,6 +497,60 @@ For each decision, add a `.json` file using `matrix-reloaded` format. Do not exe
 
 [What changes. What to watch for.]
 ```
+
+---
+
+## Knowledge Base Integration [BP-KB]
+
+Optional. For projects where AI-generated summaries should be captured in external knowledge tools (Roam Research, Obsidian, Notion, etc.).
+
+### Enable in AGENTS.md
+
+Add a `## Knowledge Base` section to `AGENTS.md` with tool-specific conventions. When present, agents generate structured output ready to paste into the user's knowledge base.
+
+### Thread Summary Format
+
+All AI-generated content must be nested under a parent attribution block:
+
+1. **Tool** — e.g., `[[opencode]]`, `[[claude-code]]`, `[[gemini-cli]]`, `[[codex-cli]]`
+2. **Model** — the exact model that generated the content
+3. **Thread marker** — `[[ai-thread]]`
+4. **Project tag** — e.g., `[[project-name]]`
+
+### Roam Research Example
+
+Store in `AGENTS.md`:
+
+```markdown
+## Knowledge Base
+
+Tool: Roam Research
+
+When asked to generate a Roam summary or thread:
+- Parent block: `- [[<tool>]] [[<model-id>]] [[ai-thread]] [[<project-name>]]`
+- Tool names: `opencode` | `claude-code` | `gemini-cli` | `codex-cli`
+- Page refs: only include `[[Page Name]]` if explicitly instructed
+- Sections: ask user what they want (chronological, functional, Q&A)
+```
+
+Output structure:
+
+```
+- [[opencode]] [[glm-5]] [[ai-thread]] [[agent-blueprint]]
+    - Summary
+        - Investigated stale cache issue in `src/cache.ts:142`
+    - Files Changed
+        - `src/cache.ts` - added TTL validation
+    - Next Steps
+        - Consider integration tests for cache invalidation
+```
+
+### Other Tools
+
+Adapt the format for tool conventions:
+- **Obsidian**: Use `#tags` and `[[wikilinks]]` with YAML frontmatter if desired
+- **Notion**: Use nested bullet structure with database-compatible formatting
+- **Logseq**: Similar to Roam with `[[bracket]]` syntax
 
 ---
 

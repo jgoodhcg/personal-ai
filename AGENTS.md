@@ -1,6 +1,6 @@
 # AGENTS
 
-Follows AGENT_BLUEPRINT.md
+Follows `AGENT_BLUEPRINT.md` (version: 1.4.5)
 
 ## Project Overview
 
@@ -32,7 +32,11 @@ Template rules:
   - Gemini -> `gemini`
   - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
 - Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
-- `AI_PRODUCT_EMAIL` may follow a project pattern such as `[AI_PRODUCT_LINE]@ai.example.com`.
+- `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` format:
+  - `codex` -> `Codex <codex@users.noreply.github.com>`
+  - `claude` -> `Claude <claude@users.noreply.github.com>`
+  - `gemini` -> `Gemini <google-gemini@users.noreply.github.com>`
+  - `opencode` -> `GLM <zai-org@users.noreply.github.com>`
 - Fill this template at commit time; do not persist filled values in `AGENTS.md`.
 
 ## Validation Commands
@@ -80,7 +84,7 @@ Template rules:
 ## References
 
 - For operating model, see `AGENT_BLUEPRINT.md`
-- For decision records and optional matrix format, see `AGENT_BLUEPRINT.md` section `Decision Artifacts [BP-DECISIONS]`.
+- For decision records, see `AGENT_BLUEPRINT.md` section `Decision Artifacts [BP-DECISIONS]`
 - For executable work units, see `roadmap/index.md`
 - For deployment and usage context, see `README.md`
 
@@ -90,3 +94,7 @@ Template rules:
 - `.env` — API keys and secrets (not tracked)
 - `knowledge/` — Markdown files for RAG
 - `scripts/setup.sh` — VPS provisioning script
+
+## User Profile
+
+See `.agent-profile.md` (git-ignored) for interaction preferences. Create on project init or alignment.

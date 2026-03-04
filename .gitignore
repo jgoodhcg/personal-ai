@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Agent profile
+.agent-profile.md
+
 # Persistent data (not tracked)
 data/
 logs/
