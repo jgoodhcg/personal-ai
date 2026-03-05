@@ -5,8 +5,7 @@ set -euo pipefail
 # - Run as root on fresh Debian/Ubuntu
 # - Goal: durable, Tailscale-only Open WebUI deployment
 
-ADMIN_USER="${ADMIN_USER:-}"
-AGENT_USER="${AGENT_USER:-agent}"
+PROJECT_USER="${PROJECT_USER:-}"
 REPO_URL="${REPO_URL:-https://github.com/justingood/personal-ai.git}"
 REPO_DIR="${REPO_DIR:-}"
 TS_AUTHKEY="${TS_AUTHKEY:-}"
@@ -76,53 +75,33 @@ service_restart_ssh() {
   fi
 }
 
-ensure_admin_user() {
-  if [[ -z "${ADMIN_USER}" ]]; then
+ensure_project_user() {
+  if [[ -z "${PROJECT_USER}" ]]; then
     if [[ ! -t 0 ]]; then
-      die "ADMIN_USER is required for non-interactive runs."
+      die "PROJECT_USER is required for non-interactive runs."
     fi
 
-    read -rp "Admin username (sudo user): " ADMIN_USER
+    read -rp "Project username: " PROJECT_USER
   fi
 
-  [[ -n "${ADMIN_USER}" ]] || die "ADMIN_USER is required."
-  [[ "${ADMIN_USER}" != "root" ]] || die "ADMIN_USER must be a non-root username."
+  [[ -n "${PROJECT_USER}" ]] || die "PROJECT_USER is required."
+  [[ "${PROJECT_USER}" != "root" ]] || die "PROJECT_USER must be a non-root username."
 
-  if ! id "${ADMIN_USER}" >/dev/null 2>&1; then
-    useradd -m -s /bin/bash "${ADMIN_USER}"
-    usermod -aG sudo "${ADMIN_USER}"
+  if ! id "${PROJECT_USER}" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash "${PROJECT_USER}"
   fi
+
+  usermod -aG sudo,docker "${PROJECT_USER}"
 
   if [[ -f /root/.ssh/authorized_keys ]]; then
-    mkdir -p "/home/${ADMIN_USER}/.ssh"
-    cp /root/.ssh/authorized_keys "/home/${ADMIN_USER}/.ssh/authorized_keys"
-    chown -R "${ADMIN_USER}:${ADMIN_USER}" "/home/${ADMIN_USER}/.ssh"
-    chmod 700 "/home/${ADMIN_USER}/.ssh"
-    chmod 600 "/home/${ADMIN_USER}/.ssh/authorized_keys"
+    mkdir -p "/home/${PROJECT_USER}/.ssh"
+    cp /root/.ssh/authorized_keys "/home/${PROJECT_USER}/.ssh/authorized_keys"
+    chown -R "${PROJECT_USER}:${PROJECT_USER}" "/home/${PROJECT_USER}/.ssh"
+    chmod 700 "/home/${PROJECT_USER}/.ssh"
+    chmod 600 "/home/${PROJECT_USER}/.ssh/authorized_keys"
   else
-    warn "No /root/.ssh/authorized_keys found. Verify ${ADMIN_USER} SSH access before hardening."
+    warn "No /root/.ssh/authorized_keys found. Verify ${PROJECT_USER} SSH access before hardening."
   fi
-}
-
-ensure_agent_user() {
-  [[ "${AGENT_USER}" != "root" ]] || die "AGENT_USER must be a non-root username."
-  [[ "${AGENT_USER}" != "${ADMIN_USER}" ]] || die "AGENT_USER must be different from ADMIN_USER."
-
-  if ! id "${AGENT_USER}" >/dev/null 2>&1; then
-    useradd -m -s /bin/bash "${AGENT_USER}"
-  fi
-
-  usermod -aG docker "${AGENT_USER}"
-
-  if [[ -f "/home/${ADMIN_USER}/.ssh/authorized_keys" ]]; then
-    mkdir -p "/home/${AGENT_USER}/.ssh"
-    cp "/home/${ADMIN_USER}/.ssh/authorized_keys" "/home/${AGENT_USER}/.ssh/authorized_keys"
-    chown -R "${AGENT_USER}:${AGENT_USER}" "/home/${AGENT_USER}/.ssh"
-    chmod 700 "/home/${AGENT_USER}/.ssh"
-    chmod 600 "/home/${AGENT_USER}/.ssh/authorized_keys"
-  fi
-
-  run_as_user "${AGENT_USER}" mkdir -p "/home/${AGENT_USER}/workspace" "/home/${AGENT_USER}/projects"
 }
 
 configure_swap() {
@@ -176,12 +155,12 @@ install_tailscale() {
     tailscale up
   fi
 
-  tailscale set --operator="${AGENT_USER}"
+  tailscale set --operator="${PROJECT_USER}"
 }
 
 configure_ssh_hardening() {
-  if [[ ! -f "/home/${ADMIN_USER}/.ssh/authorized_keys" ]]; then
-    warn "Skipping SSH hardening because ${ADMIN_USER} has no authorized_keys."
+  if [[ ! -f "/home/${PROJECT_USER}/.ssh/authorized_keys" ]]; then
+    warn "Skipping SSH hardening because ${PROJECT_USER} has no authorized_keys."
     return
   fi
 
@@ -203,7 +182,7 @@ configure_firewall() {
 
 clone_repo() {
   if [[ -z "${REPO_DIR}" ]]; then
-    REPO_DIR="/home/${AGENT_USER}/personal-ai"
+    REPO_DIR="/home/${PROJECT_USER}/personal-ai"
   fi
 
   if [[ -d "${REPO_DIR}/.git" ]]; then
@@ -216,7 +195,7 @@ clone_repo() {
   fi
 
   log "Cloning repo"
-  run_as_user "${AGENT_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
+  run_as_user "${PROJECT_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
 }
 
 prepare_env_file() {
@@ -239,7 +218,7 @@ prepare_env_file() {
     printf '\nWEBUI_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> "${env_file}"
   fi
 
-  chown "${AGENT_USER}:${AGENT_USER}" "${env_file}"
+  chown "${PROJECT_USER}:${PROJECT_USER}" "${env_file}"
 }
 
 deploy_open_webui() {
@@ -270,9 +249,8 @@ print_summary() {
 Setup complete
 =========================================
 
-Admin user:  ${ADMIN_USER}
-Agent user:  ${AGENT_USER}
-Repo dir:    ${REPO_DIR}
+Project user: ${PROJECT_USER}
+Repo dir:     ${REPO_DIR}
 
 Validation:
   docker compose -f ${REPO_DIR}/docker-compose.yml ps
@@ -291,8 +269,7 @@ main() {
   require_root
   install_base_packages
   configure_swap
-  ensure_admin_user
-  ensure_agent_user
+  ensure_project_user
   install_tailscale
   configure_ssh_hardening
   configure_firewall
