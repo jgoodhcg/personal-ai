@@ -18,7 +18,7 @@ bash personal-ai/scripts/setup.sh
 ## After Setup
 
 ```bash
-# Configure API keys
+# Configure Open WebUI secret
 cp .env.example .env
 nano .env
 

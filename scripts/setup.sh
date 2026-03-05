@@ -1,231 +1,246 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-# Personal AI VPS Setup
-# Run as root on a fresh Debian/Ubuntu VPS
-#
-# Usage:
-#   curl -fsSL https://raw.githubusercontent.com/YOURUSER/personal-ai/main/scripts/setup.sh | bash
-#
-# Or with variables:
-#   curl -fsSL ... | ADMIN_USER=myname TS_AUTHKEY=tskey-auth-xxx bash
+# Personal AI VPS bootstrap
+# - Run as root on fresh Debian/Ubuntu
+# - Goal: durable, Tailscale-only Open WebUI deployment
 
-#############################################
-# Configuration (override via environment)
-#############################################
+ADMIN_USER="${ADMIN_USER:-}"
+AGENT_USER="${AGENT_USER:-agent}"
+REPO_URL="${REPO_URL:-https://github.com/justingood/personal-ai.git}"
+REPO_DIR="${REPO_DIR:-}"
+TS_AUTHKEY="${TS_AUTHKEY:-}"
+SWAP_SIZE="${SWAP_SIZE:-2G}"
+AUTO_DEPLOY="${AUTO_DEPLOY:-true}"
+ENABLE_TS_SERVE="${ENABLE_TS_SERVE:-true}"
 
-ADMIN_USER="${ADMIN_USER:-}"           # Your sudo user (will prompt if empty)
-AGENT_USER="${AGENT_USER:-agent}"      # CLI tools user
-REPO_URL="${REPO_URL:-}"               # Git repo URL (will prompt if empty)
-TS_AUTHKEY="${TS_AUTHKEY:-}"           # Tailscale auth key (interactive if empty)
-SWAP_SIZE="${SWAP_SIZE:-2G}"           # Swap file size
+log() {
+  printf "\n==> %s\n" "$1"
+}
 
-#############################################
-# Prompts
-#############################################
+warn() {
+  printf "\n[WARN] %s\n" "$1"
+}
 
-if [[ -z "$ADMIN_USER" ]]; then
-    read -rp "Admin username (your sudo user): " ADMIN_USER
-fi
+die() {
+  printf "\n[ERROR] %s\n" "$1" >&2
+  exit 1
+}
 
-if [[ -z "$REPO_URL" ]]; then
-    read -rp "Git repo URL (or press enter to skip clone): " REPO_URL
-fi
+require_root() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    die "Run this script as root."
+  fi
+}
 
-echo ""
-echo "=== Personal AI Setup ==="
-echo "Admin user:  $ADMIN_USER"
-echo "Agent user:  $AGENT_USER"
-echo "Repo:        ${REPO_URL:-[skip]}"
-echo ""
+service_restart_ssh() {
+  if systemctl list-unit-files | grep -q '^ssh\.service'; then
+    systemctl restart ssh
+  elif systemctl list-unit-files | grep -q '^sshd\.service'; then
+    systemctl restart sshd
+  else
+    warn "Could not find ssh/sshd service to restart."
+  fi
+}
 
-#############################################
-# 1. System Prep & Dependencies
-#############################################
+ensure_admin_user() {
+  [[ -n "${ADMIN_USER}" ]] || read -rp "Admin username (sudo user): " ADMIN_USER
+  [[ -n "${ADMIN_USER}" ]] || die "ADMIN_USER is required."
 
-echo "=== Updating system ==="
-apt update && apt upgrade -y
+  if ! id "${ADMIN_USER}" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash "${ADMIN_USER}"
+    usermod -aG sudo "${ADMIN_USER}"
+  fi
 
-echo "=== Installing dependencies ==="
-apt install -y curl git ufw fail2ban
+  if [[ -f /root/.ssh/authorized_keys ]]; then
+    mkdir -p "/home/${ADMIN_USER}/.ssh"
+    cp /root/.ssh/authorized_keys "/home/${ADMIN_USER}/.ssh/authorized_keys"
+    chown -R "${ADMIN_USER}:${ADMIN_USER}" "/home/${ADMIN_USER}/.ssh"
+    chmod 700 "/home/${ADMIN_USER}/.ssh"
+    chmod 600 "/home/${ADMIN_USER}/.ssh/authorized_keys"
+  else
+    warn "No /root/.ssh/authorized_keys found. Verify ${ADMIN_USER} SSH access before hardening."
+  fi
+}
 
-echo "=== Configuring swap ($SWAP_SIZE) ==="
-if [[ ! -f /swapfile ]]; then
-    fallocate -l "$SWAP_SIZE" /swapfile
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    echo '/swapfile none swap sw 0 0' >> /etc/fstab
-    echo "Swap created"
-else
-    echo "Swap already exists, skipping"
-fi
+ensure_agent_user() {
+  if ! id "${AGENT_USER}" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash "${AGENT_USER}"
+  fi
 
-#############################################
-# 2. User & SSH Hardening
-#############################################
+  usermod -aG docker "${AGENT_USER}"
 
-echo "=== Creating admin user: $ADMIN_USER ==="
-if ! id "$ADMIN_USER" &>/dev/null; then
-    useradd -m -s /bin/bash "$ADMIN_USER"
-    usermod -aG sudo "$ADMIN_USER"
+  if [[ -f "/home/${ADMIN_USER}/.ssh/authorized_keys" ]]; then
+    mkdir -p "/home/${AGENT_USER}/.ssh"
+    cp "/home/${ADMIN_USER}/.ssh/authorized_keys" "/home/${AGENT_USER}/.ssh/authorized_keys"
+    chown -R "${AGENT_USER}:${AGENT_USER}" "/home/${AGENT_USER}/.ssh"
+    chmod 700 "/home/${AGENT_USER}/.ssh"
+    chmod 600 "/home/${AGENT_USER}/.ssh/authorized_keys"
+  fi
 
-    # Migrate SSH keys from root
-    if [[ -f /root/.ssh/authorized_keys ]]; then
-        mkdir -p "/home/$ADMIN_USER/.ssh"
-        cp /root/.ssh/authorized_keys "/home/$ADMIN_USER/.ssh/"
-        chown -R "$ADMIN_USER:$ADMIN_USER" "/home/$ADMIN_USER/.ssh"
-        chmod 700 "/home/$ADMIN_USER/.ssh"
-        chmod 600 "/home/$ADMIN_USER/.ssh/authorized_keys"
-        echo "SSH keys migrated from root"
-    fi
-else
-    echo "User $ADMIN_USER already exists"
-fi
+  sudo -u "${AGENT_USER}" mkdir -p "/home/${AGENT_USER}/workspace" "/home/${AGENT_USER}/projects"
+}
 
-echo "=== Hardening SSH ==="
-sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
+configure_swap() {
+  if [[ -f /swapfile ]]; then
+    log "Swap already exists, skipping"
+    return
+  fi
 
-echo "=== Configuring firewall ==="
-ufw allow ssh
-ufw --force enable
+  log "Configuring swap (${SWAP_SIZE})"
+  fallocate -l "${SWAP_SIZE}" /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+}
 
-#############################################
-# 3. Docker
-#############################################
+install_base_packages() {
+  log "Updating system packages"
+  apt update
+  apt upgrade -y
 
-echo "=== Installing Docker ==="
-if ! command -v docker &>/dev/null; then
-    curl -fsSL https://get.docker.com | sh
-else
-    echo "Docker already installed"
-fi
+  log "Installing base packages"
+  apt install -y curl git ufw fail2ban openssl docker.io docker-compose-v2
+  systemctl enable --now docker
+}
 
-#############################################
-# 4. Node.js (for CLI tools)
-#############################################
-
-echo "=== Installing Node.js ==="
-if ! command -v node &>/dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-    apt install -y nodejs
-else
-    echo "Node.js already installed: $(node --version)"
-fi
-
-#############################################
-# 5. Agent User (CLI tools)
-#############################################
-
-echo "=== Creating agent user: $AGENT_USER ==="
-if ! id "$AGENT_USER" &>/dev/null; then
-    useradd -m -s /bin/bash "$AGENT_USER"
-    usermod -aG docker "$AGENT_USER"
-
-    # Copy SSH keys so admin can SSH as agent
-    if [[ -f "/home/$ADMIN_USER/.ssh/authorized_keys" ]]; then
-        mkdir -p "/home/$AGENT_USER/.ssh"
-        cp "/home/$ADMIN_USER/.ssh/authorized_keys" "/home/$AGENT_USER/.ssh/"
-        chown -R "$AGENT_USER:$AGENT_USER" "/home/$AGENT_USER/.ssh"
-        chmod 700 "/home/$AGENT_USER/.ssh"
-        chmod 600 "/home/$AGENT_USER/.ssh/authorized_keys"
-    fi
-else
-    echo "User $AGENT_USER already exists"
-    usermod -aG docker "$AGENT_USER"
-fi
-
-# Agent home structure
-sudo -u "$AGENT_USER" mkdir -p "/home/$AGENT_USER"/{workspace,projects}
-
-# Agent shell config
-cat >> "/home/$AGENT_USER/.bashrc" << 'EOF'
-
-# Load API keys
-if [[ -f ~/.env ]]; then
-    set -a
-    source ~/.env
-    set +a
-fi
-
-# Default to workspace
-cd ~/workspace 2>/dev/null || true
-EOF
-
-#############################################
-# 6. Tailscale
-#############################################
-
-echo "=== Installing Tailscale ==="
-if ! command -v tailscale &>/dev/null; then
+install_tailscale() {
+  if command -v tailscale >/dev/null 2>&1; then
+    log "Tailscale already installed"
+  else
+    log "Installing Tailscale"
     curl -fsSL https://tailscale.com/install.sh | sh
-else
-    echo "Tailscale already installed"
-fi
+  fi
 
-echo "=== Connecting to Tailscale ==="
-if [[ -n "$TS_AUTHKEY" ]]; then
-    tailscale up --authkey "$TS_AUTHKEY"
-else
+  systemctl enable --now tailscaled
+
+  log "Connecting Tailscale"
+  if [[ -n "${TS_AUTHKEY}" ]]; then
+    tailscale up --authkey "${TS_AUTHKEY}"
+  else
     tailscale up
-fi
+  fi
 
-# Fix DNS collision (hostname pointing to 127.0.0.1 breaks MagicDNS)
-HOSTNAME=$(hostname)
-if grep -q "127.0.1.1.*$HOSTNAME" /etc/hosts; then
-    sed -i "s/127.0.1.1.*$HOSTNAME/127.0.1.1 $HOSTNAME.local/" /etc/hosts
-    echo "Fixed /etc/hosts DNS collision"
-fi
+  tailscale set --operator="${AGENT_USER}"
+}
 
-# Let agent user manage Tailscale serve
-tailscale set --operator="$AGENT_USER"
+configure_ssh_hardening() {
+  if [[ ! -f "/home/${ADMIN_USER}/.ssh/authorized_keys" ]]; then
+    warn "Skipping SSH hardening because ${ADMIN_USER} has no authorized_keys."
+    return
+  fi
 
-#############################################
-# 7. Clone Repo
-#############################################
+  log "Hardening SSH"
+  sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  service_restart_ssh
+}
 
-if [[ -n "$REPO_URL" ]]; then
-    echo "=== Cloning repo ==="
-    REPO_DIR="/home/$AGENT_USER/personal-ai"
-    if [[ ! -d "$REPO_DIR" ]]; then
-        sudo -u "$AGENT_USER" git clone "$REPO_URL" "$REPO_DIR"
+configure_firewall() {
+  log "Configuring UFW"
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow OpenSSH
+  ufw allow in on tailscale0
+  ufw allow out on tailscale0
+  ufw --force enable
+}
+
+clone_repo() {
+  if [[ -z "${REPO_DIR}" ]]; then
+    REPO_DIR="/home/${AGENT_USER}/personal-ai"
+  fi
+
+  if [[ -d "${REPO_DIR}/.git" ]]; then
+    log "Repo already exists at ${REPO_DIR}"
+    return
+  fi
+
+  log "Cloning repo"
+  sudo -u "${AGENT_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
+}
+
+prepare_env_file() {
+  local env_file="${REPO_DIR}/.env"
+  local example_file="${REPO_DIR}/.env.example"
+
+  if [[ ! -f "${env_file}" ]]; then
+    if [[ -f "${example_file}" ]]; then
+      cp "${example_file}" "${env_file}"
     else
-        echo "Repo already exists at $REPO_DIR"
+      touch "${env_file}"
     fi
-fi
+  fi
 
-#############################################
-# Done
-#############################################
+  if grep -q '^WEBUI_SECRET_KEY=' "${env_file}"; then
+    if grep -q '^WEBUI_SECRET_KEY=$' "${env_file}" || grep -q '^WEBUI_SECRET_KEY=generate-a-random-secret-here$' "${env_file}"; then
+      sed -i "s|^WEBUI_SECRET_KEY=.*$|WEBUI_SECRET_KEY=$(openssl rand -hex 32)|" "${env_file}"
+    fi
+  else
+    printf '\nWEBUI_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> "${env_file}"
+  fi
 
-echo ""
-echo "========================================="
-echo "Setup complete!"
-echo "========================================="
-echo ""
-echo "Next steps:"
-echo ""
-if [[ -z "$REPO_URL" ]]; then
-echo "1. Clone repo:"
-echo "   sudo -u $AGENT_USER git clone <repo-url> /home/$AGENT_USER/personal-ai"
-echo ""
-fi
-echo "2. Configure secrets:"
-echo "   sudo -u $AGENT_USER cp /home/$AGENT_USER/personal-ai/.env.example /home/$AGENT_USER/personal-ai/.env"
-echo "   sudo -u $AGENT_USER nano /home/$AGENT_USER/personal-ai/.env"
-echo ""
-echo "3. Start services:"
-echo "   cd /home/$AGENT_USER/personal-ai && sudo -u $AGENT_USER docker compose up -d"
-echo ""
-echo "4. Expose via Tailscale:"
-echo "   tailscale serve --bg --https=443 http://localhost:3000"
-echo ""
-echo "5. SSH access:"
-echo "   ssh $ADMIN_USER@<tailscale-ip>    # Admin (sudo)"
-echo "   ssh $AGENT_USER@<tailscale-ip>    # Agent (CLI tools)"
-echo ""
-echo "6. Install CLI tools (as agent user):"
-echo "   npm install -g @anthropic-ai/claude-code"
-echo ""
+  chown "${AGENT_USER}:${AGENT_USER}" "${env_file}"
+}
+
+deploy_open_webui() {
+  [[ "${AUTO_DEPLOY}" == "true" ]] || return
+
+  log "Preparing .env"
+  prepare_env_file
+
+  log "Validating Docker Compose"
+  docker compose -f "${REPO_DIR}/docker-compose.yml" config >/dev/null
+
+  log "Starting Open WebUI"
+  docker compose -f "${REPO_DIR}/docker-compose.yml" up -d
+
+  if [[ "${ENABLE_TS_SERVE}" == "true" ]]; then
+    log "Publishing HTTPS over Tailscale"
+    tailscale serve --bg --https=443 http://localhost:3000
+  fi
+}
+
+print_summary() {
+  local node_name
+  node_name="$(tailscale status --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("Self",{}).get("DNSName","").rstrip("."))' 2>/dev/null || true)"
+
+  cat <<EOF
+
+=========================================
+Setup complete
+=========================================
+
+Admin user:  ${ADMIN_USER}
+Agent user:  ${AGENT_USER}
+Repo dir:    ${REPO_DIR}
+
+Validation:
+  docker compose -f ${REPO_DIR}/docker-compose.yml ps
+  tailscale status
+
+If Tailscale Serve is enabled, open:
+  https://${node_name}
+
+If that URL is empty, run:
+  tailscale status
+
+EOF
+}
+
+main() {
+  require_root
+  install_base_packages
+  configure_swap
+  ensure_admin_user
+  ensure_agent_user
+  install_tailscale
+  configure_ssh_hardening
+  configure_firewall
+  clone_repo
+  deploy_open_webui
+  print_summary
+}
+
+main "$@"
