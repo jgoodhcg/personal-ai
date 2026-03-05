@@ -1,6 +1,6 @@
 # AGENTS
 
-Follows `AGENT_BLUEPRINT.md` (version: 1.4.5)
+Follows `AGENT_BLUEPRINT.md` (version: 1.4.6)
 
 ## Project Overview
 
@@ -28,15 +28,11 @@ Template rules:
 - `AI_PRODUCT_LINE` must be one of: `codex|claude|gemini|opencode`.
 - Determine `AI_PRODUCT_LINE` from current session:
   - Codex or ChatGPT coding agent -> `codex`
-  - Claude -> `claude`
-  - Gemini -> `gemini`
+  - Claude Code -> `claude`
+  - Gemini CLI -> `gemini`
   - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
 - Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
-- `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` format:
-  - `codex` -> `Codex <codex@users.noreply.github.com>`
-  - `claude` -> `Claude <claude@users.noreply.github.com>`
-  - `gemini` -> `Gemini <google-gemini@users.noreply.github.com>`
-  - `opencode` -> `GLM <zai-org@users.noreply.github.com>`
+- Resolve `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` from the **model name** using the tiered resolution order defined in `AGENT_BLUEPRINT.md` section `Commits [BP-WF-COMMIT]`.
 - Fill this template at commit time; do not persist filled values in `AGENTS.md`.
 
 ## Validation Commands
@@ -49,6 +45,9 @@ Template rules:
 
 ## Allowed Commands
 
+- `docker compose config` — Validate Compose file syntax and interpolation
+- `docker compose up --dry-run` — Preview deployment actions without starting containers
+- `docker compose ps` — Inspect running service state
 - `docker compose up -d` — Start services
 - `docker compose down` — Stop services
 - `docker compose logs` — View logs

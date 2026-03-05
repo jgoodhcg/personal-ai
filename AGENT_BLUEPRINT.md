@@ -1,5 +1,5 @@
 ---
-version: "1.4.5"
+version: "1.4.6"
 ---
 
 # Agent Blueprint
@@ -69,14 +69,24 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 - Read the commit trailer template from `AGENTS.md`.
 - If missing, ask once before first commit in a repo.
 - Never hardcode runtime values (`Co-authored-by`, `AI-Provider`, `AI-Product`, `AI-Model`) in `AGENTS.md`.
-- Use product-line contributor identities for `Co-authored-by`:
-  - `codex`: `Codex <codex@users.noreply.github.com>`
-  - `claude`: `Claude <claude@users.noreply.github.com>`
-  - `gemini`: `Gemini <google-gemini@users.noreply.github.com>`
-  - `opencode`: `GLM <zai-org@users.noreply.github.com>`
+- Derive `Co-authored-by` from the **model name**, not the tool. Use this resolution order:
+  1. **Tier 1 — Brand match** (case-insensitive match against model name):
+     - `codex` in model name → `Codex <codex@users.noreply.github.com>`
+     - `claude` in model name → `Claude <claude@users.noreply.github.com>`
+     - `gemini` in model name → `Gemini <google-gemini@users.noreply.github.com>`
+     - `glm` in model name → `GLM <zai-org@users.noreply.github.com>`
+  2. **Tier 2 — Provider fallback** (when model name has no brand match):
+     - OpenAI → `OpenAI <openai@users.noreply.github.com>`
+     - Anthropic → `Anthropic <anthropics@users.noreply.github.com>`
+     - Google → `Google <google-gemini@users.noreply.github.com>`
+     - Zhipu → `Zhipu <zai-org@users.noreply.github.com>`
+     - Mistral → `Mistral <mistralai@users.noreply.github.com>`
+     - Meta → `Meta <meta-llama@users.noreply.github.com>`
+     - DeepSeek → `DeepSeek <deepseek-ai@users.noreply.github.com>`
+  3. **Tier 3 — Unknown** (provider not listed): `{Provider Name} <{github-org}@users.noreply.github.com>` — look up the provider's GitHub org. If truly unknown: `AI Agent <noreply@users.noreply.github.com>`
 - Derive `AI-Provider` and `AI-Model` from runtime context at commit time.
 - Include trailers when committing:
-  - `Co-authored-by: [runtime product identity] <[runtime product email]>`
+  - `Co-authored-by: [resolved name] <[resolved email]>`
   - `AI-Provider: [runtime provider name]` (optional; include only if known)
   - `AI-Product: [runtime product line]` (optional; include only if known)
   - `AI-Model: [runtime model name]` (optional; include only if known)
@@ -207,15 +217,11 @@ Template rules:
 - `AI_PRODUCT_LINE` must be one of: `codex|claude|gemini|opencode`.
 - Determine `AI_PRODUCT_LINE` from current session:
   - Codex or ChatGPT coding agent -> `codex`
-  - Claude -> `claude`
-  - Gemini -> `gemini`
-  - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
+  - Claude Code -> `claude`
+  - Gemini CLI -> `gemini`
+  - OpenCode -> `opencode` (regardless of underlying provider/model, including z.ai)
 - Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
-- `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` format:
-  - `codex` -> `Codex <codex@users.noreply.github.com>`
-  - `claude` -> `Claude <claude@users.noreply.github.com>`
-  - `gemini` -> `Gemini <google-gemini@users.noreply.github.com>`
-  - `opencode` -> `GLM <zai-org@users.noreply.github.com>`
+- Resolve `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` from the **model name** using the tiered resolution order defined in `[BP-WF-COMMIT]`.
 - Fill this template at commit time; do not persist filled values in `AGENTS.md`.
 
 ## Validation Commands
