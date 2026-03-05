@@ -1,59 +1,55 @@
 # Personal AI
 
-Self-hosted AI platform on a single VPS. Open WebUI for chat, SSH access for CLI agents.
+A small self-hosted AI workspace I run on a single VPS. It keeps Open WebUI and CLI agents behind Tailscale-only access, with a simple bootstrap script and minimal Docker operations.
 
-## Quick Start
+For someone browsing my projects, this is intentionally pragmatic infrastructure work: lightweight automation, secure-by-default remote access, and a setup I can rebuild quickly without adding more platform than I need.
+
+## Command Reference
+
+Bootstrap a fresh Debian or Ubuntu VPS as `root`:
 
 ```bash
-# On a fresh Debian/Ubuntu VPS, as root:
-curl -fsSL https://raw.githubusercontent.com/YOURUSER/personal-ai/main/scripts/setup.sh | bash
+git clone https://github.com/justingood/personal-ai.git
+cd personal-ai
+ADMIN_USER=<your-admin-user> TS_AUTHKEY=<your-tailscale-auth-key> bash scripts/setup.sh
 ```
 
-Or clone first, then run:
+Or use the interactive Tailscale login flow:
+
 ```bash
-git clone https://github.com/YOURUSER/personal-ai.git
-bash personal-ai/scripts/setup.sh
+git clone https://github.com/justingood/personal-ai.git
+cd personal-ai
+ADMIN_USER=<your-admin-user> bash scripts/setup.sh
 ```
 
-## After Setup
+Validate the Docker Compose config:
 
 ```bash
-# Configure Open WebUI secret
-cp .env.example .env
-nano .env
+docker compose config
+docker compose up --dry-run
+docker compose ps
+```
 
-# Start Open WebUI
+Common operations:
+
+```bash
 docker compose up -d
-
-# Expose via Tailscale
-tailscale serve --bg --https=443 http://localhost:3000
+docker compose down
+docker compose logs -f chat
+docker compose pull
+tailscale status
 ```
 
-Access at `https://<vps-name>.<tailnet>.ts.net`
+## First Run
 
-## Structure
+- Recommended: create a one-off or reusable auth key in the Tailscale admin console and pass it as `TS_AUTHKEY` during setup.
+- If you omit `TS_AUTHKEY`, the script pauses and `tailscale up` prints a login URL; open it in a browser and sign in to attach the server to your tailnet.
+- You do not pre-create the device in Tailscale. The device appears when you authenticate it.
+- If your tailnet uses device approval, approve the new machine in the Tailscale admin console before expecting traffic to work.
 
-```
-/home/agent/
-├── personal-ai/        # This repo
-│   ├── docker-compose.yml
-│   ├── .env            # API keys (not tracked)
-│   └── data/           # Open WebUI data (not tracked)
-├── workspace/          # Scratchpad for CLI agents
-└── projects/           # Clone repos here
-```
+## Notes
 
-## Users
-
-| User | Purpose |
-|------|---------|
-| `<admin>` | sudo access, system maintenance |
-| `agent` | CLI tools (claude-code, etc.), no sudo |
-
-## CLI Tools
-
-SSH as agent, then install what you need:
-
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+- `data/` holds persistent Open WebUI state and stays out of git.
+- `.env` is local-only and should contain secrets copied from `.env.example`.
+- The intended access path is Tailscale, not public internet exposure.
+- On a brand-new VPS, `scripts/setup.sh` creates both the admin user and the agent user for you.

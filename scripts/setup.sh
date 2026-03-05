@@ -22,9 +22,42 @@ warn() {
   printf "\n[WARN] %s\n" "$1"
 }
 
+prompt() {
+  printf "%s" "$1"
+}
+
+set_sshd_config_value() {
+  local key="$1"
+  local value="$2"
+  local config_file="/etc/ssh/sshd_config"
+
+  if grep -Eq "^[#[:space:]]*${key}[[:space:]]+" "${config_file}"; then
+    sed -i "s|^[#[:space:]]*${key}[[:space:]].*|${key} ${value}|" "${config_file}"
+  else
+    printf '\n%s %s\n' "${key}" "${value}" >> "${config_file}"
+  fi
+}
+
 die() {
   printf "\n[ERROR] %s\n" "$1" >&2
   exit 1
+}
+
+run_as_user() {
+  local user="$1"
+  shift
+
+  if command -v runuser >/dev/null 2>&1; then
+    runuser -u "${user}" -- "$@"
+    return
+  fi
+
+  if command -v sudo >/dev/null 2>&1; then
+    sudo -u "${user}" "$@"
+    return
+  fi
+
+  die "Need runuser or sudo to execute commands as ${user}."
 }
 
 require_root() {
@@ -44,8 +77,16 @@ service_restart_ssh() {
 }
 
 ensure_admin_user() {
-  [[ -n "${ADMIN_USER}" ]] || read -rp "Admin username (sudo user): " ADMIN_USER
+  if [[ -z "${ADMIN_USER}" ]]; then
+    if [[ ! -t 0 ]]; then
+      die "ADMIN_USER is required for non-interactive runs."
+    fi
+
+    read -rp "Admin username (sudo user): " ADMIN_USER
+  fi
+
   [[ -n "${ADMIN_USER}" ]] || die "ADMIN_USER is required."
+  [[ "${ADMIN_USER}" != "root" ]] || die "ADMIN_USER must be a non-root username."
 
   if ! id "${ADMIN_USER}" >/dev/null 2>&1; then
     useradd -m -s /bin/bash "${ADMIN_USER}"
@@ -64,6 +105,9 @@ ensure_admin_user() {
 }
 
 ensure_agent_user() {
+  [[ "${AGENT_USER}" != "root" ]] || die "AGENT_USER must be a non-root username."
+  [[ "${AGENT_USER}" != "${ADMIN_USER}" ]] || die "AGENT_USER must be different from ADMIN_USER."
+
   if ! id "${AGENT_USER}" >/dev/null 2>&1; then
     useradd -m -s /bin/bash "${AGENT_USER}"
   fi
@@ -78,7 +122,7 @@ ensure_agent_user() {
     chmod 600 "/home/${AGENT_USER}/.ssh/authorized_keys"
   fi
 
-  sudo -u "${AGENT_USER}" mkdir -p "/home/${AGENT_USER}/workspace" "/home/${AGENT_USER}/projects"
+  run_as_user "${AGENT_USER}" mkdir -p "/home/${AGENT_USER}/workspace" "/home/${AGENT_USER}/projects"
 }
 
 configure_swap() {
@@ -101,7 +145,7 @@ install_base_packages() {
   apt upgrade -y
 
   log "Installing base packages"
-  apt install -y curl git ufw fail2ban openssl docker.io docker-compose-v2
+  apt install -y curl git ufw fail2ban openssl python3 sudo docker.io docker-compose-v2
   systemctl enable --now docker
 }
 
@@ -117,8 +161,18 @@ install_tailscale() {
 
   log "Connecting Tailscale"
   if [[ -n "${TS_AUTHKEY}" ]]; then
+    log "Using Tailscale auth key"
     tailscale up --authkey "${TS_AUTHKEY}"
   else
+    warn "No TS_AUTHKEY provided. Tailscale will print a login URL for browser-based sign-in."
+    warn "If device approval is enabled in your tailnet, approve this server in the Tailscale admin console after sign-in."
+
+    if [[ ! -t 0 ]]; then
+      die "TS_AUTHKEY is required for non-interactive runs. Set TS_AUTHKEY or rerun in an interactive shell."
+    fi
+
+    prompt "Press Enter to continue with interactive Tailscale login..."
+    read -r _
     tailscale up
   fi
 
@@ -132,8 +186,8 @@ configure_ssh_hardening() {
   fi
 
   log "Hardening SSH"
-  sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-  sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  set_sshd_config_value "PasswordAuthentication" "no"
+  set_sshd_config_value "PermitRootLogin" "no"
   service_restart_ssh
 }
 
@@ -157,8 +211,12 @@ clone_repo() {
     return
   fi
 
+  if [[ -e "${REPO_DIR}" ]]; then
+    die "REPO_DIR exists but is not a git repo: ${REPO_DIR}"
+  fi
+
   log "Cloning repo"
-  sudo -u "${AGENT_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
+  run_as_user "${AGENT_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
 }
 
 prepare_env_file() {
