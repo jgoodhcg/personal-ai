@@ -9,13 +9,13 @@ For someone browsing my projects, this is intentionally pragmatic infrastructure
 Bootstrap a fresh Debian or Ubuntu VPS as `root` without cloning the repo first:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/justingood/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> TS_AUTHKEY=<your-tailscale-auth-key> bash
+curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> TS_AUTHKEY=<your-tailscale-auth-key> bash
 ```
 
 Or use the interactive Tailscale login flow:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/justingood/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> bash
+curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> bash
 ```
 
 Validate the Docker Compose config:

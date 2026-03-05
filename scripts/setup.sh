@@ -6,7 +6,7 @@ set -euo pipefail
 # - Goal: durable, Tailscale-only Open WebUI deployment
 
 PROJECT_USER="${PROJECT_USER:-}"
-REPO_URL="${REPO_URL:-https://github.com/justingood/personal-ai.git}"
+REPO_URL="${REPO_URL:-https://github.com/jgoodhcg/personal-ai.git}"
 REPO_DIR="${REPO_DIR:-}"
 TS_AUTHKEY="${TS_AUTHKEY:-}"
 SWAP_SIZE="${SWAP_SIZE:-2G}"
