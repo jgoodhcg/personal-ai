@@ -6,6 +6,7 @@ set -euo pipefail
 # - Goal: durable, Tailscale-only Open WebUI deployment
 
 PROJECT_USER="${PROJECT_USER:-}"
+PROJECT_USER_PASSWORD="${PROJECT_USER_PASSWORD:-}"
 REPO_URL="${REPO_URL:-https://github.com/jgoodhcg/personal-ai.git}"
 REPO_DIR="${REPO_DIR:-}"
 TS_AUTHKEY="${TS_AUTHKEY:-}"
@@ -109,6 +110,14 @@ ensure_project_user() {
 
   if ! id "${PROJECT_USER}" >/dev/null 2>&1; then
     useradd -m -s /bin/bash "${PROJECT_USER}"
+  fi
+
+  if [[ -z "${PROJECT_USER_PASSWORD}" ]]; then
+    read -r -s -p "Password for ${PROJECT_USER} (leave empty to skip): " PROJECT_USER_PASSWORD
+    echo
+  fi
+  if [[ -n "${PROJECT_USER_PASSWORD}" ]]; then
+    echo "${PROJECT_USER}:${PROJECT_USER_PASSWORD}" | chpasswd
   fi
 
   usermod -aG sudo,docker "${PROJECT_USER}"
