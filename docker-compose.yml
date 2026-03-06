@@ -7,4 +7,24 @@ services:
       - ./data:/app/backend/data
     environment:
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - ENABLE_RAG_WEB_SEARCH=True
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - RAG_WEB_SEARCH_RESULT_COUNT=3
+      - RAG_WEB_SEARCH_CONCURRENT_REQUESTS=10
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
     restart: unless-stopped
+    depends_on:
+      - searxng
+
+  searxng:
+    image: searxng/searxng:latest
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
