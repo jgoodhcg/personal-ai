@@ -14,6 +14,7 @@ goal: "Self-hosted AI platform with chat interface, CLI agents, and autonomous t
 
 - `phase-1-foundation.md` (`active`): infrastructure baseline on VPS/Tailscale + Open WebUI.
 - `phase-1-launch-readiness.md` (`ready`): launch gating checks and hardening for Open WebUI.
+- `phase-1-chat-archive-processing.md` (`ready`): process exported chat histories into RAG knowledge base.
 - `phase-2-task-runner.md` (`draft`): scheduled automation jobs after foundation is stable.
 - `phase-3-dashboard.md` (`draft`): optional visibility UI for task runs.
 - `phase-4-custom-fork.md` (`draft`): only if upstream Open WebUI cannot meet requirements.
@@ -22,6 +23,5 @@ goal: "Self-hosted AI platform with chat interface, CLI agents, and autonomous t
 
 Ideas not yet promoted to work units:
 
-- CLI script to normalize chat exports into a single analysis schema
 - Ollama for local models (resource constraints TBD)
 - Mobile shortcut for quick capture

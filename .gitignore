@@ -8,6 +8,15 @@
 data/
 logs/
 
+# Chat exports and personal knowledge (sensitive)
+raw_exports/
+chats/
+extractions/
+aggregated/
+knowledge/
+knowledge_base/
+personalization/
+
 # Editor
 .vscode/
 .idea/

@@ -91,7 +91,7 @@ Template rules:
 
 - `docker-compose.yml` — Service definitions
 - `.env` — API keys and secrets (not tracked)
-- `knowledge/` — Markdown files for RAG
+- `knowledge/` — Markdown files for RAG (gitignored, sensitive)
 - `scripts/setup.sh` — VPS provisioning script
 
 ## User Profile
