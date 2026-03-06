@@ -12,6 +12,8 @@ TS_AUTHKEY="${TS_AUTHKEY:-}"
 SWAP_SIZE="${SWAP_SIZE:-2G}"
 AUTO_DEPLOY="${AUTO_DEPLOY:-true}"
 ENABLE_TS_SERVE="${ENABLE_TS_SERVE:-true}"
+APT_DPKG_OPTS=(-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+APT_ENV=(DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a UCF_FORCE_CONFFOLD=1)
 
 log() {
   printf "\n==> %s\n" "$1"
@@ -22,7 +24,24 @@ warn() {
 }
 
 prompt() {
-  printf "%s" "$1"
+  if tty_available; then
+    printf "%s" "$1" > /dev/tty
+  else
+    printf "%s" "$1"
+  fi
+}
+
+tty_available() {
+  [[ -r /dev/tty && -w /dev/tty ]]
+}
+
+read_from_tty() {
+  local __var_name="$1"
+  local __value
+
+  tty_available || die "Interactive input requires a TTY."
+  IFS= read -r __value < /dev/tty
+  printf -v "${__var_name}" '%s' "${__value}"
 }
 
 set_sshd_config_value() {
@@ -77,11 +96,12 @@ service_restart_ssh() {
 
 ensure_project_user() {
   if [[ -z "${PROJECT_USER}" ]]; then
-    if [[ ! -t 0 ]]; then
+    if ! tty_available; then
       die "PROJECT_USER is required for non-interactive runs."
     fi
 
-    read -rp "Project username: " PROJECT_USER
+    prompt "Project username: "
+    read_from_tty PROJECT_USER
   fi
 
   [[ -n "${PROJECT_USER}" ]] || die "PROJECT_USER is required."
@@ -120,11 +140,11 @@ configure_swap() {
 
 install_base_packages() {
   log "Updating system packages"
-  apt update
-  apt upgrade -y
+  env "${APT_ENV[@]}" apt-get update
+  env "${APT_ENV[@]}" apt-get "${APT_DPKG_OPTS[@]}" upgrade -y
 
   log "Installing base packages"
-  apt install -y curl git ufw fail2ban openssl python3 sudo docker.io docker-compose-v2
+  env "${APT_ENV[@]}" apt-get "${APT_DPKG_OPTS[@]}" install -y curl git ufw fail2ban openssl python3 sudo docker.io docker-compose-v2
   systemctl enable --now docker
 }
 
@@ -146,12 +166,12 @@ install_tailscale() {
     warn "No TS_AUTHKEY provided. Tailscale will print a login URL for browser-based sign-in."
     warn "If device approval is enabled in your tailnet, approve this server in the Tailscale admin console after sign-in."
 
-    if [[ ! -t 0 ]]; then
+    if ! tty_available; then
       die "TS_AUTHKEY is required for non-interactive runs. Set TS_AUTHKEY or rerun in an interactive shell."
     fi
 
     prompt "Press Enter to continue with interactive Tailscale login..."
-    read -r _
+    read_from_tty _
     tailscale up
   fi
 

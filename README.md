@@ -6,16 +6,20 @@ For someone browsing my projects, this is intentionally pragmatic infrastructure
 
 ## Command Reference
 
-Bootstrap a fresh Debian or Ubuntu VPS as `root` without cloning the repo first:
+Bootstrap a fresh Debian or Ubuntu VPS as `root` by downloading the script first:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> TS_AUTHKEY=<your-tailscale-auth-key> bash
+curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh -o /root/setup.sh
+chmod +x /root/setup.sh
+PROJECT_USER=<your-user> TS_AUTHKEY=<your-tailscale-auth-key> /root/setup.sh
 ```
 
 Or use the interactive Tailscale login flow:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh | PROJECT_USER=<your-user> bash
+curl -fsSL https://raw.githubusercontent.com/jgoodhcg/personal-ai/main/scripts/setup.sh -o /root/setup.sh
+chmod +x /root/setup.sh
+PROJECT_USER=<your-user> /root/setup.sh
 ```
 
 Validate the Docker Compose config:
@@ -39,14 +43,16 @@ tailscale status
 ## First Run
 
 - Recommended: create a one-off or reusable auth key in the Tailscale admin console and pass it as `TS_AUTHKEY` during setup.
-- If you omit `TS_AUTHKEY`, the script pauses and `tailscale up` prints a login URL; open it in a browser and sign in to attach the server to your tailnet.
+- If you omit `TS_AUTHKEY`, the script prompts on the terminal and `tailscale up` prints a login URL; open it in a browser and sign in to attach the server to your tailnet.
 - You do not pre-create the device in Tailscale. The device appears when you authenticate it.
 - If your tailnet uses device approval, approve the new machine in the Tailscale admin console before expecting traffic to work.
 - The script creates one non-root Linux user for the project, adds it to `sudo` and `docker`, and clones the repo into that user's home directory.
+- Package upgrades keep your existing `sshd_config` by default, suppress `needrestart` prompts, and are meant to run cleanly on a fresh VPS without blocking TUI dialogs.
 
 ## Notes
 
 - `data/` holds persistent Open WebUI state and stays out of git.
 - `.env` is local-only and should contain secrets copied from `.env.example`.
 - The intended access path is Tailscale, not public internet exposure.
+- Running a downloaded script file is preferred over `curl | bash` because package-manager and Tailscale login prompts behave more reliably with a normal TTY.
 - If you prefer cloning instead of `curl`, clone into `/root`, run `scripts/setup.sh`, and let the script place the real working copy under `/home/<project-user>/personal-ai`.
