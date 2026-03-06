@@ -49,6 +49,24 @@ tailscale status
 - The script creates one non-root Linux user for the project, adds it to `sudo` and `docker`, and clones the repo into that user's home directory.
 - Package upgrades keep your existing `sshd_config` by default, suppress `needrestart` prompts, and are meant to run cleanly on a fresh VPS without blocking TUI dialogs.
 
+## Deploying Updates
+
+From your laptop (requires Tailscale):
+
+```bash
+ssh root@personal-ai
+su personal-ai
+cd ~/personal-ai
+git pull
+docker compose down
+docker compose pull
+docker compose up -d
+exit  # back to root
+exit  # disconnect
+```
+
+> Yes, the Tailscale hostname, droplet name, Linux user, and project directory are all `personal-ai`. It's confusing but it works.
+
 ## Notes
 
 - `data/` holds persistent Open WebUI state and stays out of git.
