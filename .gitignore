@@ -17,6 +17,10 @@ knowledge/
 knowledge_base/
 personalization/
 
+# Python
+.venv/
+__pycache__/
+
 # Editor
 .vscode/
 .idea/

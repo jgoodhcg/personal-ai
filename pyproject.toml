@@ -1,0 +1,10 @@
+[project]
+name = "personal-ai"
+version = "0.1.0"
+description = "Self-hosted AI platform scripts"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.31",
+]
