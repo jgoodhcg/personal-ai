@@ -3,7 +3,7 @@ title: "Chat Archive Processing"
 status: ready
 description: "Process exported chat histories into a structured knowledge base for Open WebUI RAG"
 created: 2026-03-06
-updated: 2026-03-06
+updated: 2026-03-07
 tags: [knowledge-base, rag, chat-exports]
 priority: high
 ---
@@ -20,9 +20,10 @@ Turn years of ChatGPT, Claude, and z.ai/GLM chat exports into a searchable, stru
 
 1. **Normalize** — Python script converts all exports (ChatGPT `conversations.json`, Claude JSON, GLM JSON) into uniform markdown files with YAML frontmatter. One file per conversation in `chats/`.
 
-2. **Extract** — Batch script sends each conversation to a mid-range model (via OpenRouter) and saves structured YAML to `extractions/`. Two passes per conversation:
-   - General extraction: summary, topics, interests, goals, preferences, personal facts, decisions, frustrations, open questions
-   - Ideas extraction: every idea mentioned with type, status, development level, excitement, novelty
+2. **Extract** — Batch script sends each conversation to a mid-range model (via OpenRouter) and saves structured YAML to `extractions/`. Three extraction categories per conversation:
+   - General: summary, topics, interests, goals, preferences, personal facts, decisions, frustrations, open questions, self-descriptions, emotional tone
+   - Ideas: every idea mentioned with type, status, development level, excitement, novelty
+   - Media & influences: recurring cultural references — authors, artists, directors, musicians, actors, game makers, movies, TV, games, music, books, podcasts. Track name, medium, frequency, and whether it was a passing mention or genuine expressed interest
 
 3. **Aggregate** — Script reads all extraction YAML and produces consolidated frequency-counted lists in `aggregated/` (topics, interests, goals, preferences, projects, ideas catalog, timeline, etc.)
 
@@ -33,6 +34,7 @@ Turn years of ChatGPT, Claude, and z.ai/GLM chat exports into a searchable, stru
    - `working_with_me.md` — direct instructions for AI assistants (response format, detail level, common mistakes to avoid)
    - `decision_patterns.md` — how decisions are approached, recurring traps
    - `ideas_gallery.md` — full catalog with lost gems, zombie ideas, genealogy, patterns
+   - `media_and_influences.md` — recurring cultural references and expressed tastes across media types
 
 5. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. This is non-optional.
 
