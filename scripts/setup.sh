@@ -247,6 +247,34 @@ prepare_env_file() {
     printf '\nWEBUI_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> "${env_file}"
   fi
 
+  # --- CORS_ALLOW_ORIGIN ---
+  local ts_dns_name
+  ts_dns_name="$(tailscale status --json 2>/dev/null \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("Self",{}).get("DNSName","").rstrip("."))' 2>/dev/null || true)"
+
+  if [[ -n "${ts_dns_name}" ]]; then
+    local cors_origin
+    if [[ "${ENABLE_TS_SERVE}" == "true" ]]; then
+      cors_origin="https://${ts_dns_name}"
+    else
+      cors_origin="http://${ts_dns_name}:3000"
+    fi
+
+    if grep -q '^CORS_ALLOW_ORIGIN=' "${env_file}"; then
+      if grep -qE '^CORS_ALLOW_ORIGIN=(\*|https://your-machine\.tailnet-name\.ts\.net)?$' "${env_file}"; then
+        sed -i "s|^CORS_ALLOW_ORIGIN=.*$|CORS_ALLOW_ORIGIN=${cors_origin}|" "${env_file}"
+        log "CORS_ALLOW_ORIGIN set to ${cors_origin}"
+      else
+        log "CORS_ALLOW_ORIGIN already configured, skipping"
+      fi
+    else
+      printf '\nCORS_ALLOW_ORIGIN=%s\n' "${cors_origin}" >> "${env_file}"
+      log "CORS_ALLOW_ORIGIN set to ${cors_origin}"
+    fi
+  else
+    warn "Could not determine Tailscale DNS name. Set CORS_ALLOW_ORIGIN manually in ${env_file}"
+  fi
+
   chown "${PROJECT_USER}:${PROJECT_USER}" "${env_file}"
 }
 
