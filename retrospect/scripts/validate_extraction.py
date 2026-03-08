@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Validate extraction JSON files against their schemas.
 
-Usage:
-    python retrospect/scripts/validate_extraction.py <file_or_dir> [--pass PASS_ID]
-    python retrospect/scripts/validate_extraction.py retrospect/data/extractions/some_file.json
-    python retrospect/scripts/validate_extraction.py retrospect/data/extractions/ --pass pass1_summary
+Usage (from retrospect/):
+    uv run python scripts/validate_extraction.py <file_or_dir> [--pass PASS_ID]
+    uv run python scripts/validate_extraction.py data/extractions/some_file.json
+    uv run python scripts/validate_extraction.py data/extractions/ --pass pass1_summary
 
 Validates JSON extraction output against the appropriate schema.
 The pass is determined from the file's metadata.pass_id field, or can be

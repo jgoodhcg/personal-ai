@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Normalize chat exports from ChatGPT, Claude, and z.ai into uniform markdown files.
 
-Usage:
-    python retrospect/scripts/normalize_exports.py [--dry-run] [--limit N]
+Usage (from retrospect/):
+    uv run python scripts/normalize_exports.py [--dry-run] [--limit N]
 
-Reads from raw_exports/{openai,anthropic,zai}/
-Writes to chats/ as individual markdown files with YAML frontmatter.
+Reads from data/raw_exports/{openai,anthropic,zai}/
+Writes to data/chats/ as individual markdown files with YAML frontmatter.
 """
 
 import argparse
