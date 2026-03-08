@@ -1,9 +1,9 @@
 ---
 title: "Chat Archive Processing"
-status: ready
+status: active
 description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, and RAG knowledge base"
 created: 2026-03-06
-updated: 2026-03-07
+updated: 2026-03-08
 tags: [knowledge-base, rag, chat-exports, self-discovery, psychology]
 priority: high
 ---
@@ -111,13 +111,15 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
 
 2. **Schema** — DONE. JSON Schema (draft 2020-12) definitions for all four extraction passes in `retrospect/schemas/`. Validation script in `retrospect/scripts/validate_extraction.py`.
 
-3. **Extract** — Four-pass extraction per conversation via OpenRouter. Outputs to `retrospect/data/extractions/` as JSON.
+3. **Prompts** — DONE. Jinja2 prompt templates for all four passes in `retrospect/prompts/`. Each has system and user blocks with field-level instructions aligned to schemas.
 
-4. **Aggregate** — Combine extractions into frequency-counted lists and pattern summaries in `retrospect/data/aggregated/`.
+4. **Extract** — Four-pass extraction per conversation via OpenRouter. Outputs to `retrospect/data/extractions/` as JSON.
 
-5. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
+5. **Aggregate** — Combine extractions into frequency-counted lists and pattern summaries in `retrospect/data/aggregated/`.
 
-6. **Synthesize** — Generate knowledge base documents in `retrospect/data/knowledge_base/`:
+6. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
+
+7. **Synthesize** — Generate knowledge base documents in `retrospect/data/knowledge_base/`:
    - `personal_profile.md` — biographical facts, cognitive style, values
    - `interest_map.md` — domains, intensity, connections, evolution
    - `goals_and_projects.md` — active/recurring/completed goals, project index
@@ -128,9 +130,9 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
    - `psychological_profile.md` — evidence-based personality analysis
    - `relationship_map.md` — people and social patterns
 
-7. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
+8. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
 
-8. **Deploy** — Upload knowledge base documents to Open WebUI as RAG documents.
+9. **Deploy** — Upload knowledge base documents to Open WebUI as RAG documents.
 
 ### Data Flow
 
@@ -203,8 +205,12 @@ The extraction effort aims to produce four kinds of value:
 ## Next Steps
 
 1. ~~Define JSON schema for each extraction pass~~ — DONE
-2. Build extraction prompts for each pass
-3. Run cost estimate on 100-chat sample
-4. Build extraction runner script
-5. Execute full extraction
+2. ~~Build extraction prompts for each pass~~ — DONE
+3. Build extraction runner script
+   - Multi-model support (pass model as CLI arg for sampling/comparison)
+   - Resumability (skip conversations with existing output for a given pass+model)
+   - Re-run support (encode model and timestamp in output filename/metadata for filtering)
+   - `--limit N` flag for sample runs
+4. Run cost and quality comparison across candidate models (100-chat sample)
+5. Execute full extraction with chosen model
 6. Build aggregation and inference scripts
