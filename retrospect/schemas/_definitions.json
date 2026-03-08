@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "_definitions.json",
+  "title": "Shared Definitions",
+  "description": "Reusable types for the chat archive extraction pipeline.",
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "How certain the model is about this extraction."
+    },
+    "salience": {
+      "type": "string",
+      "enum": ["peripheral", "central", "primary"],
+      "description": "How central this item was to the conversation."
+    },
+    "evidence_item": {
+      "type": "object",
+      "description": "A single extracted item with evidence traceability.",
+      "properties": {
+        "signal": {
+          "type": "string",
+          "description": "The extracted item or observation."
+        },
+        "interpretation": {
+          "type": "string",
+          "description": "What this might mean or imply."
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Direct quotes or specific references from the conversation."
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "salience": { "$ref": "#/$defs/salience" },
+        "alternative_explanations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Plausible competing interpretations."
+        }
+      },
+      "required": ["signal", "interpretation", "evidence", "confidence", "salience"],
+      "additionalProperties": false
+    },
+    "extraction_metadata": {
+      "type": "object",
+      "description": "Metadata present in every extraction output.",
+      "properties": {
+        "source_conversation_id": {
+          "type": "string",
+          "description": "ID of the source conversation from the normalized chat."
+        },
+        "source_file": {
+          "type": "string",
+          "description": "Filename of the normalized markdown file."
+        },
+        "pass_id": {
+          "type": "string",
+          "enum": ["pass1_summary", "pass2_projects", "pass3_people", "pass4_psych"],
+          "description": "Which extraction pass produced this output."
+        },
+        "model": {
+          "type": "string",
+          "description": "Model used for extraction (e.g. 'google/gemini-2.0-flash-001')."
+        },
+        "extracted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of when extraction ran."
+        }
+      },
+      "required": ["source_conversation_id", "source_file", "pass_id", "model", "extracted_at"],
+      "additionalProperties": false
+    }
+  }
+}

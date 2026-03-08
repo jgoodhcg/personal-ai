@@ -23,7 +23,8 @@ Turn years of ChatGPT, Claude, and z.ai/GLM chat exports into structured data fo
 
 - **Source**: 3,231 normalized conversations (2023-2026)
 - **Platforms**: ChatGPT, Claude, z.ai/GLM
-- **Status**: Normalization complete, chats in `chats/` directory
+- **Status**: Normalization complete, chats in `retrospect/data/chats/`
+- **Pipeline home**: `retrospect/` (isolated monorepo-style directory)
 
 ## Extraction Architecture
 
@@ -106,15 +107,17 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
 
 ## Pipeline
 
-1. **Normalize** — DONE. Python script converted all exports to uniform markdown in `chats/`.
+1. **Normalize** — DONE. Python script converted all exports to uniform markdown in `retrospect/data/chats/`.
 
-2. **Extract** — Four-pass extraction per conversation via OpenRouter. Outputs to `extractions/` as JSON.
+2. **Schema** — DONE. JSON Schema (draft 2020-12) definitions for all four extraction passes in `retrospect/schemas/`. Validation script in `retrospect/scripts/validate_extraction.py`.
 
-3. **Aggregate** — Combine extractions into frequency-counted lists and pattern summaries in `aggregated/`.
+3. **Extract** — Four-pass extraction per conversation via OpenRouter. Outputs to `retrospect/data/extractions/` as JSON.
 
-4. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
+4. **Aggregate** — Combine extractions into frequency-counted lists and pattern summaries in `retrospect/data/aggregated/`.
 
-5. **Synthesize** — Generate knowledge base documents in `knowledge_base/`:
+5. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
+
+6. **Synthesize** — Generate knowledge base documents in `retrospect/data/knowledge_base/`:
    - `personal_profile.md` — biographical facts, cognitive style, values
    - `interest_map.md` — domains, intensity, connections, evolution
    - `goals_and_projects.md` — active/recurring/completed goals, project index
@@ -125,19 +128,22 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
    - `psychological_profile.md` — evidence-based personality analysis
    - `relationship_map.md` — people and social patterns
 
-6. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
+7. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
 
-7. **Deploy** — Upload knowledge base documents to Open WebUI as RAG documents.
+8. **Deploy** — Upload knowledge base documents to Open WebUI as RAG documents.
 
 ### Data Flow
 
 ```
-raw_exports/ → [normalize] → chats/ → [extract 4 passes] → extractions/ 
-    → [aggregate] → aggregated/ → [infer] → inferred/ 
-    → [synthesize] → knowledge_base/ → [review] → deploy to Open WebUI
+retrospect/data/raw_exports/ → [normalize] → retrospect/data/chats/
+    → [extract 4 passes] → retrospect/data/extractions/ 
+    → [aggregate] → retrospect/data/aggregated/
+    → [infer] → retrospect/data/inferred/ 
+    → [synthesize] → retrospect/data/knowledge_base/
+    → [review] → deploy to Open WebUI
 ```
 
-All data directories are gitignored. Scripts are committed. Raw exports preserved untouched.
+All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospect/schemas/`. Scripts live in `retrospect/scripts/`. Raw exports preserved untouched.
 
 ## Cost Estimation
 
@@ -148,7 +154,7 @@ All data directories are gitignored. Scripts are committed. Raw exports preserve
 
 ## Validation
 
-- [ ] Extraction schema defined and validated
+- [x] Extraction schema defined and validated
 - [ ] Sample run of 100 conversations produces valid JSON
 - [ ] Each pass extracts target fields correctly
 - [ ] Evidence and confidence fields populated
@@ -196,7 +202,7 @@ The extraction effort aims to produce four kinds of value:
 
 ## Next Steps
 
-1. Define JSON schema for each extraction pass
+1. ~~Define JSON schema for each extraction pass~~ — DONE
 2. Build extraction prompts for each pass
 3. Run cost estimate on 100-chat sample
 4. Build extraction runner script

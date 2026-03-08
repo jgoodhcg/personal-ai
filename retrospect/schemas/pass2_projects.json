@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pass2_projects.json",
+  "title": "Pass 2: Projects, Ideas, Goals, Decisions",
+  "description": "Extracts projects, ideas, goals, decisions, and open questions from a conversation.",
+  "type": "object",
+  "properties": {
+    "metadata": { "$ref": "_definitions.json#/$defs/extraction_metadata" },
+    "projects_and_endeavors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project or endeavor name (use user's name if given, otherwise descriptive)."
+          },
+          "description": {
+            "type": "string",
+            "description": "What this project is about."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ideating", "planning", "active", "stalled", "shipped", "abandoned", "unknown"],
+            "description": "Apparent project status."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Quotes or references supporting this extraction."
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["name", "description", "status", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "Named projects with status signals."
+    },
+    "ideas_and_concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "idea": {
+            "type": "string",
+            "description": "The idea, concept, or creative fragment."
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain or category (e.g. game mechanic, business concept, story fragment, worldbuilding)."
+          },
+          "development_level": {
+            "type": "string",
+            "enum": ["spark", "sketch", "developed", "refined"],
+            "description": "How fleshed out the idea is."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["idea", "domain", "development_level", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "One-off ideas, creative fragments, concepts explored."
+    },
+    "goals_and_aspirations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string",
+            "description": "The goal or aspiration."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["explicit", "implicit"],
+            "description": "Whether the user stated this directly or it was inferred."
+          },
+          "timeframe": {
+            "type": ["string", "null"],
+            "description": "Any timeframe signal (e.g. 'this week', 'someday', '2026'). Null if none."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["goal", "type", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "Explicit and implicit goals with timeframe signals."
+    },
+    "decisions_and_crossroads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "What is being weighed or decided."
+          },
+          "options_considered": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Options the user is weighing."
+          },
+          "criteria": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Decision criteria surfaced (explicit or implicit)."
+          },
+          "resolution": {
+            "type": ["string", "null"],
+            "description": "What was decided, if anything. Null if unresolved."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["decision", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "Decisions being weighed, criteria, and resolution status."
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The unresolved question or problem."
+          },
+          "domain": {
+            "type": "string",
+            "description": "What domain this question belongs to."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          }
+        },
+        "required": ["question", "evidence"],
+        "additionalProperties": false
+      },
+      "description": "Unresolved questions or problems surfaced in the conversation."
+    }
+  },
+  "required": ["metadata"],
+  "additionalProperties": false
+}

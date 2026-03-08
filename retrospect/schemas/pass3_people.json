@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pass3_people.json",
+  "title": "Pass 3: People, Values, Frictions",
+  "description": "Extracts people and relationships, values and motivations, and frustrations from a conversation.",
+  "type": "object",
+  "properties": {
+    "metadata": { "$ref": "_definitions.json#/$defs/extraction_metadata" },
+    "people_and_relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Person's name or identifier (e.g. 'my brother', 'coworker Alex')."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "family", "friend", "partner", "colleague", "collaborator",
+              "mentor", "mentee", "authority_figure", "antagonist",
+              "public_figure", "historical_figure", "fictional", "other"
+            ],
+            "description": "Relationship role category."
+          },
+          "context": {
+            "type": "string",
+            "description": "How this person came up and their relevance."
+          },
+          "sentiment": {
+            "type": "string",
+            "enum": ["positive", "negative", "mixed", "neutral"],
+            "description": "Apparent sentiment toward this person."
+          },
+          "recurring": {
+            "type": "boolean",
+            "description": "Whether this person seems to be a recurring figure (based on context clues within this conversation)."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["name", "role", "context", "sentiment", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "People mentioned, relationship roles, and sentiment."
+    },
+    "values_and_motivations": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "Principles, values, and motivations that surface (autonomy, aesthetics, efficiency, social impact, etc.)."
+    },
+    "frustrations_and_blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "frustration": {
+            "type": "string",
+            "description": "The friction point or block."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["external", "internal", "interpersonal", "systemic", "unclear"],
+            "description": "Where the frustration originates."
+          },
+          "intensity": {
+            "type": "string",
+            "enum": ["mild", "moderate", "strong"],
+            "description": "How strongly the frustration registers."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+        },
+        "required": ["frustration", "source", "intensity", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "Friction points, blocks, and frustrations with source attribution."
+    }
+  },
+  "required": ["metadata"],
+  "additionalProperties": false
+}

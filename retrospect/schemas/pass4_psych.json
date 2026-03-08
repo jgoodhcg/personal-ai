@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pass4_psych.json",
+  "title": "Pass 4: Psychological and Behavioral Signals",
+  "description": "Extracts psychological and behavioral signals from a conversation. All items use the evidence_item format to enforce the evidence-over-inference principle.",
+  "type": "object",
+  "properties": {
+    "metadata": { "$ref": "_definitions.json#/$defs/extraction_metadata" },
+    "emotional_tone_and_energy": {
+      "type": "object",
+      "properties": {
+        "dominant_affect": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "curious", "frustrated", "excited", "anxious", "stuck",
+              "playful", "melancholic", "determined", "scattered",
+              "calm", "irritated", "hopeful", "resigned", "energized",
+              "flat", "other"
+            ]
+          },
+          "minItems": 1,
+          "description": "Primary emotional tones present in the conversation."
+        },
+        "energy_level": {
+          "type": "string",
+          "enum": ["low", "moderate", "high", "fluctuating"],
+          "description": "Overall energy level of user engagement."
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
+      },
+      "required": ["dominant_affect", "energy_level", "evidence", "confidence"],
+      "additionalProperties": false,
+      "description": "Dominant emotional tone and energy level of the conversation."
+    },
+    "cognitive_style": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "How problems are approached: systematic, exploratory, analytical, intuitive, indecisive, etc."
+    },
+    "communication_style": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "How requests are framed: directive, collaborative, exploratory, self-deprecating, etc."
+    },
+    "behavioral_patterns": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "Observable patterns in how the user engages with the AI."
+    },
+    "self_concept_signals": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "How the user describes or positions themselves."
+    },
+    "defense_or_avoidance_patterns": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "Topics dodged, deflections, rationalizations observed."
+    },
+    "motivation_and_reward_patterns": {
+      "type": "array",
+      "items": {
+        "$ref": "_definitions.json#/$defs/evidence_item"
+      },
+      "description": "What seems to drive engagement and what the user finds rewarding."
+    },
+    "framework_relevant_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "signal": {
+            "type": "string",
+            "description": "The observed signal."
+          },
+          "frameworks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["big_five", "mbti", "enneagram", "attachment_style", "other"]
+            },
+            "minItems": 1,
+            "description": "Which personality frameworks this signal may be relevant to."
+          },
+          "potential_indicators": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "What this signal might indicate within those frameworks (e.g. 'high openness', 'INTP preference for Ti', 'type 5 withdrawal')."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "confidence": { "$ref": "_definitions.json#/$defs/confidence" },
+          "alternative_explanations": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["signal", "frameworks", "potential_indicators", "evidence", "confidence"],
+        "additionalProperties": false
+      },
+      "description": "Evidence that may later map to Big Five, MBTI, Enneagram, attachment style, or other recognized frameworks."
+    }
+  },
+  "required": ["metadata", "emotional_tone_and_energy"],
+  "additionalProperties": false
+}

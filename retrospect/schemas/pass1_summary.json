@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pass1_summary.json",
+  "title": "Pass 1: Summary + Factual Content",
+  "description": "Extracts what happened, what was discussed, and factual content from a conversation.",
+  "type": "object",
+  "properties": {
+    "metadata": { "$ref": "_definitions.json#/$defs/extraction_metadata" },
+    "summary": {
+      "type": "string",
+      "description": "2-4 sentence summary of what happened in this conversation."
+    },
+    "significance": {
+      "type": ["string", "null"],
+      "description": "Why this conversation matters, if it does. Null if routine/unremarkable."
+    },
+    "topics_and_interests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Subject or domain discussed."
+          },
+          "salience": { "$ref": "_definitions.json#/$defs/salience" },
+          "context": {
+            "type": "string",
+            "description": "Brief context for how this topic came up."
+          }
+        },
+        "required": ["topic", "salience"],
+        "additionalProperties": false
+      },
+      "description": "Subjects discussed with their centrality to the conversation."
+    },
+    "media_and_influences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Name of the work, creator, or thinker."
+          },
+          "category": {
+            "type": "string",
+            "enum": ["book", "film", "tv_show", "game", "music", "podcast", "creator", "thinker", "article", "other"],
+            "description": "Type of media or influence."
+          },
+          "relationship": {
+            "type": "string",
+            "enum": ["mentioned", "discussed", "recommended", "critiqued", "consumed", "creating", "influenced_by"],
+            "description": "How the user relates to this item."
+          },
+          "context": {
+            "type": "string",
+            "description": "Brief context for why this was mentioned."
+          }
+        },
+        "required": ["title", "category", "relationship"],
+        "additionalProperties": false
+      },
+      "description": "Books, films, games, music, podcasts, creators, thinkers referenced."
+    },
+    "technical_stack_and_skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string",
+            "description": "Language, framework, tool, or technical domain."
+          },
+          "proficiency_signal": {
+            "type": "string",
+            "enum": ["learning", "familiar", "competent", "proficient", "expert"],
+            "description": "Apparent skill level based on how the user engages with it."
+          },
+          "context": {
+            "type": "string",
+            "description": "How this skill surfaced in the conversation."
+          }
+        },
+        "required": ["skill", "proficiency_signal"],
+        "additionalProperties": false
+      },
+      "description": "Technical skills, languages, frameworks, and tools discussed."
+    }
+  },
+  "required": ["metadata", "summary", "topics_and_interests"],
+  "additionalProperties": false
+}

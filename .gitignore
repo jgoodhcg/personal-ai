@@ -8,11 +8,10 @@
 data/
 logs/
 
-# Chat exports and personal knowledge (sensitive)
-raw_exports/
-chats/
-extractions/
-aggregated/
+# Chat archive pipeline data (sensitive, under retrospect/)
+retrospect/data/
+
+# Knowledge and personalization (sensitive)
 knowledge/
 knowledge_base/
 personalization/

@@ -2,7 +2,7 @@
 """Normalize chat exports from ChatGPT, Claude, and z.ai into uniform markdown files.
 
 Usage:
-    python scripts/normalize_exports.py [--dry-run] [--limit N]
+    python retrospect/scripts/normalize_exports.py [--dry-run] [--limit N]
 
 Reads from raw_exports/{openai,anthropic,zai}/
 Writes to chats/ as individual markdown files with YAML frontmatter.
@@ -16,9 +16,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RAW_DIR = PROJECT_ROOT / "raw_exports"
-OUTPUT_DIR = PROJECT_ROOT / "chats"
+# retrospect/scripts/ -> retrospect/
+RETROSPECT_ROOT = Path(__file__).resolve().parent.parent
+RAW_DIR = RETROSPECT_ROOT / "data" / "raw_exports"
+OUTPUT_DIR = RETROSPECT_ROOT / "data" / "chats"
 
 
 def slugify(text: str, max_len: int = 60) -> str:
@@ -35,6 +36,7 @@ def format_message(role: str, content: str) -> str:
 
 
 # --- OpenAI ---
+
 
 def walk_openai_tree(mapping: dict, current_node: str) -> list[dict]:
     """Walk from root to current_node to get linear message list."""
@@ -89,19 +91,26 @@ def parse_openai(raw_dir: Path) -> list[dict]:
                 if not messages:
                     continue
 
-                dt = datetime.fromtimestamp(create_time, tz=timezone.utc) if create_time else None
-                conversations.append({
-                    "id": conv_id,
-                    "source": "openai",
-                    "title": title,
-                    "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
-                    "message_count": len(messages),
-                    "messages": messages,
-                })
+                dt = (
+                    datetime.fromtimestamp(create_time, tz=timezone.utc)
+                    if create_time
+                    else None
+                )
+                conversations.append(
+                    {
+                        "id": conv_id,
+                        "source": "openai",
+                        "title": title,
+                        "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
+                        "message_count": len(messages),
+                        "messages": messages,
+                    }
+                )
     return conversations
 
 
 # --- Anthropic ---
+
 
 def parse_anthropic(raw_dir: Path) -> list[dict]:
     conversations = []
@@ -139,18 +148,21 @@ def parse_anthropic(raw_dir: Path) -> list[dict]:
                 except ValueError:
                     pass
 
-            conversations.append({
-                "id": conv_id,
-                "source": "anthropic",
-                "title": title,
-                "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
-                "message_count": len(messages),
-                "messages": messages,
-            })
+            conversations.append(
+                {
+                    "id": conv_id,
+                    "source": "anthropic",
+                    "title": title,
+                    "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
+                    "message_count": len(messages),
+                    "messages": messages,
+                }
+            )
     return conversations
 
 
 # --- z.ai ---
+
 
 def walk_zai_tree(messages_dict: dict, current_id: str) -> list[dict]:
     """Walk from root to current_id to get linear message list."""
@@ -208,18 +220,21 @@ def parse_zai(raw_dir: Path) -> list[dict]:
                 except ValueError:
                     pass
 
-            conversations.append({
-                "id": conv_id,
-                "source": "zai",
-                "title": title,
-                "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
-                "message_count": len(messages),
-                "messages": messages,
-            })
+            conversations.append(
+                {
+                    "id": conv_id,
+                    "source": "zai",
+                    "title": title,
+                    "date": dt.strftime("%Y-%m-%d") if dt else "unknown",
+                    "message_count": len(messages),
+                    "messages": messages,
+                }
+            )
     return conversations
 
 
 # --- Output ---
+
 
 def write_markdown(conv: dict, output_dir: Path) -> Path:
     slug = slugify(conv["title"])
@@ -228,10 +243,10 @@ def write_markdown(conv: dict, output_dir: Path) -> Path:
 
     frontmatter = (
         f"---\n"
-        f"id: \"{conv['id']}\"\n"
+        f'id: "{conv["id"]}"\n'
         f"source: {conv['source']}\n"
         f"date: {conv['date']}\n"
-        f"title: \"{conv['title']}\"\n"
+        f'title: "{conv["title"]}"\n'
         f"message_count: {conv['message_count']}\n"
         f"---\n\n"
     )
@@ -246,8 +261,12 @@ def write_markdown(conv: dict, output_dir: Path) -> Path:
 
 def main():
     parser = argparse.ArgumentParser(description="Normalize chat exports")
-    parser.add_argument("--dry-run", action="store_true", help="Print stats without writing files")
-    parser.add_argument("--limit", type=int, default=0, help="Limit total conversations processed")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print stats without writing files"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=0, help="Limit total conversations processed"
+    )
     args = parser.parse_args()
 
     parsers = {
@@ -266,7 +285,7 @@ def main():
         all_conversations.extend(convs)
 
     if args.limit:
-        all_conversations = all_conversations[:args.limit]
+        all_conversations = all_conversations[: args.limit]
 
     print(f"\nTotal: {len(all_conversations)} conversations")
 
