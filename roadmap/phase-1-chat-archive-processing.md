@@ -1,10 +1,10 @@
 ---
 title: "Chat Archive Processing"
-status: active
-description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, and RAG knowledge base"
+status: ready
+description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, narrative potential, and RAG knowledge base"
 created: 2026-03-06
-updated: 2026-03-08
-tags: [knowledge-base, rag, chat-exports, self-discovery, psychology]
+updated: 2026-03-10
+tags: [knowledge-base, rag, chat-exports, self-discovery, psychology, narrative, creative]
 priority: high
 ---
 
@@ -16,8 +16,9 @@ Turn years of ChatGPT, Claude, and z.ai/GLM chat exports into structured data fo
 
 1. **Self-discovery and analysis** — surface patterns in interests, goals, behaviors, and psychology
 2. **Psychological insight** — extract evidence-bearing signals that could support serious psychological interpretation
-3. **Memory utility** — searchable records of media, influences, people, projects, and ideas
-4. **RAG context** — feed Open WebUI's knowledge base so models have context about the user
+3. **Narrative and creative potential** — identify recurring tensions, fascinations, and thematic threads that could fuel storytelling
+4. **Memory utility** — searchable records of media, influences, people, projects, and ideas
+5. **RAG context** — feed Open WebUI's knowledge base so models have context about the user
 
 ## Data
 
@@ -105,6 +106,14 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
 - Relationship themes
 - Temporal patterns (seasonal, weekly, life-phase)
 
+**Narrative and Creative Potential**
+- `recurring_tensions` — unresolved conflicts, contradictions, or frictions that surface repeatedly (internal vs. external, self vs. world, desire vs. duty)
+- `fascinations` — subjects, questions, or images the user returns to with unusual intensity or frequency
+- `thematic_threads` — ideas that recur across contexts, not yet explored as stories but carrying narrative weight
+- `personal_mythology_elements` — origin stories, transformation moments, recurring metaphors, self-narrative motifs
+- `unresolved_arcs` — goals abandoned, questions unanswered, journeys interrupted — material with narrative tension
+- `story_fodder` — extracted signals that, if pulled and explored, could generate compelling fiction or creative work
+
 ## Pipeline
 
 1. **Normalize** — DONE. Python script converted all exports to uniform markdown in `retrospect/data/chats/`.
@@ -129,6 +138,7 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
    - `media_and_influences.md` — cultural references and tastes
    - `psychological_profile.md` — evidence-based personality analysis
    - `relationship_map.md` — people and social patterns
+   - `narrative_potential.md` — recurring tensions, fascinations, and thematic threads with storytelling potential
 
 8. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
 
@@ -188,12 +198,13 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 
 ## Value Targets
 
-The extraction effort aims to produce four kinds of value:
+The extraction effort aims to produce five kinds of value:
 
 1. **Memory value** — media, influences, people, projects, ideas you won't remember on demand
 2. **Behavior value** — what you actually spend attention on, pursue, avoid, revisit
 3. **Psychology value** — how you think, feel, cope, decide, attach, and self-narrate
 4. **Identity value** — the recurring shape of your interests, motivations, taste, and personal mythology
+5. **Creative value** — tensions, fascinations, and thematic threads that could fuel storytelling or creative work
 
 ## Context
 
