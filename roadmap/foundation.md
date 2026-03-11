@@ -1,5 +1,5 @@
 ---
-title: "Phase 1: Foundation"
+title: "Foundation"
 status: active
 description: "Open WebUI on VPS with Tailscale access and CLI agent environment"
 tags: [area/infrastructure, type/foundation]
@@ -8,7 +8,7 @@ created: 2025-02-02
 updated: 2026-02-15
 ---
 
-# Phase 1: Foundation
+# Foundation
 
 ## Intent
 
@@ -45,7 +45,7 @@ Out of scope:
 
 - Deployment structure target: `/home/agent/personal-ai/` with sibling `workspace/` and `projects/`.
 - Decision artifact for current platform direction: `.decisions/chat-interface-off-the-shelf-selection.json`.
-- Launch hardening and acceptance execution unit: `roadmap/phase-1-launch-readiness.md`.
+- Launch hardening and acceptance execution unit: `roadmap/launch-readiness.md`.
 
 ## Notes
 

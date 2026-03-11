@@ -1,15 +1,15 @@
 ---
-title: "Phase 4: Custom Chat Fork"
+title: "Custom Chat Fork"
 status: draft
 description: "Fork Open WebUI when upstream doesn't meet needs"
 tags: [area/chat, type/enhancement]
 priority: low
 created: 2025-02-02
 updated: 2026-02-15
-depends-on: [phase-1-launch-readiness.md]
+depends-on: [launch-readiness.md]
 ---
 
-# Phase 4: Custom Chat Fork
+# Custom Chat Fork
 
 ## Intent
 
@@ -52,7 +52,7 @@ Out of scope:
 
 ## Context
 
-- Depends on launch-readiness outcomes in `phase-1-launch-readiness.md`.
+- Depends on launch-readiness outcomes in `launch-readiness.md`.
 - Decision baseline remains Open WebUI upstream unless trigger criteria are met.
 - Trigger criteria reference API compatibility, mobile UX, and privacy requirements.
 

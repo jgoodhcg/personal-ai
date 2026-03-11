@@ -1,15 +1,15 @@
 ---
-title: "Phase 1: Open WebUI Launch Readiness"
+title: "Open WebUI Launch Readiness"
 status: ready
 description: "Harden and validate Open WebUI for production launch on single VPS with mobile/browser/API/privacy acceptance checks"
 tags: [area/infrastructure, area/chat, type/release]
 priority: high
 created: 2026-02-15
 updated: 2026-02-15
-depends-on: [phase-1-foundation.md]
+depends-on: [foundation.md]
 ---
 
-# Phase 1: Open WebUI Launch Readiness
+# Open WebUI Launch Readiness
 
 ## Intent
 
@@ -59,11 +59,11 @@ In scope:
 Out of scope:
 - Building a custom chat UI.
 - Forking Open WebUI.
-- Building Phase 2 task runner or Phase 3 dashboard.
+- Building task runner or dashboard.
 
 ## Context
 
 - Decision basis: `.decisions/chat-interface-off-the-shelf-selection.json`.
 - Base deployment: `docker-compose.yml`.
 - Operational policy and constraints: `AGENTS.md`.
-- Foundation dependency: `roadmap/phase-1-foundation.md`.
+- Foundation dependency: `roadmap/foundation.md`.

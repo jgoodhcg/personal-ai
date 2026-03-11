@@ -1,15 +1,15 @@
 ---
-title: "Phase 2: Task Runner"
+title: "Task Runner"
 status: draft
 description: "Cron-scheduled Python scripts for automated daily/weekly tasks"
 tags: [area/automation, type/feature]
 priority: medium
 created: 2025-02-02
 updated: 2026-02-15
-depends-on: [phase-1-launch-readiness.md]
+depends-on: [launch-readiness.md]
 ---
 
-# Phase 2: Task Runner
+# Task Runner
 
 ## Intent
 
@@ -58,7 +58,7 @@ Out of scope:
 
 ## Context
 
-- Depends on launch-readiness completion: `phase-1-launch-readiness.md`.
+- Depends on launch-readiness completion: `launch-readiness.md`.
 - Expected data inputs: `knowledge/`.
 - Expected outputs: `logs/`.
 

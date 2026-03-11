@@ -4,6 +4,7 @@ status: ready
 description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, narrative potential, and RAG knowledge base"
 created: 2026-03-06
 updated: 2026-03-10
+subproject: retrospect
 tags: [knowledge-base, rag, chat-exports, self-discovery, psychology, narrative, creative]
 priority: high
 ---
@@ -217,11 +218,21 @@ The extraction effort aims to produce five kinds of value:
 
 1. ~~Define JSON schema for each extraction pass~~ — DONE
 2. ~~Build extraction prompts for each pass~~ — DONE
-3. Build extraction runner script
-   - Multi-model support (pass model as CLI arg for sampling/comparison)
+3. Build extraction runner script (`retrospect/scripts/extract.py`)
+   - Multi-model support (pass model as CLI arg)
    - Resumability (skip conversations with existing output for a given pass+model)
-   - Re-run support (encode model and timestamp in output filename/metadata for filtering)
+   - Re-run support (encode model and timestamp in output filename/metadata)
    - `--limit N` flag for sample runs
-4. Run cost and quality comparison across candidate models (100-chat sample)
-5. Execute full extraction with chosen model
-6. Build aggregation and inference scripts
+   - `--dry-run` for cost projection
+   - Concurrency via asyncio/aiohttp
+   - Flatten `$ref` schemas for OpenRouter strict `json_schema` mode
+   - Cost tracking per run
+4. Smoke test: 5 conversations x 4 passes, validate all outputs
+5. Model comparison: 100-chat sample across candidate models
+   - Candidates: `google/gemini-2.0-flash-lite-001`, `google/gemini-2.0-flash-001`, `openai/gpt-4o-mini`
+   - Compare: validity rate, cost, field completeness, evidence quality
+   - Record decision in `.decisions/retrospect-extraction-model-selection.json`
+6. Execute full extraction with chosen model(s)
+7. Build aggregation script (`retrospect/scripts/aggregate.py`)
+8. Build inference script (`retrospect/scripts/infer.py`)
+9. Build synthesis script (`retrospect/scripts/synthesize.py`)

@@ -1,15 +1,15 @@
 ---
-title: "Phase 3: Dashboard"
+title: "Dashboard"
 status: draft
 description: "Minimal web UI for task visibility and log viewing"
 tags: [area/ui, type/feature]
 priority: low
 created: 2025-02-02
 updated: 2026-02-15
-depends-on: [phase-2-task-runner.md]
+depends-on: [task-runner.md]
 ---
 
-# Phase 3: Dashboard
+# Dashboard
 
 ## Intent
 
@@ -44,7 +44,7 @@ Out of scope:
 
 ## Context
 
-- Depends on task output conventions from `phase-2-task-runner.md`.
+- Depends on task output conventions from `task-runner.md`.
 - Must follow Tailscale-only access rule from `AGENTS.md`.
 
 ## Open Questions
