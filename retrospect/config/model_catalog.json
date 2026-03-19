@@ -5,24 +5,24 @@
     {
       "group": "smaller",
       "requested_id": "openai/gpt-5.4-mini",
-      "resolved_id": "openai/gpt-5-mini",
-      "status": "resolved_alias",
-      "label": "GPT-5 Mini",
-      "input_cost_per_million": 0.25,
-      "output_cost_per_million": 2.0,
-      "source_url": "https://openrouter.ai/openai/gpt-5-mini",
-      "note": "As of 2026-03-19, OpenRouter exposes GPT-5 Mini rather than a distinct gpt-5.4-mini SKU."
+      "resolved_id": "openai/gpt-5.4-mini",
+      "status": "confirmed",
+      "label": "GPT-5.4 Mini",
+      "input_cost_per_million": 0.75,
+      "output_cost_per_million": 4.5,
+      "source_url": "https://openrouter.ai/openai/gpt-5.4-mini",
+      "note": "Confirmed current smaller-tier OpenAI candidate."
     },
     {
       "group": "smaller",
-      "requested_id": "z-ai/glm-5-turbo",
-      "resolved_id": null,
-      "status": "not_found",
-      "label": "GLM 5 Turbo",
-      "input_cost_per_million": null,
-      "output_cost_per_million": null,
-      "source_url": "https://openrouter.ai/openrouter/auto/uptime",
-      "note": "No OpenRouter listing was found for glm-5-turbo on 2026-03-19. Auto Router lists z-ai/glm-5 but not a turbo-tier counterpart."
+      "requested_id": "z-ai/glm-4.7-flash",
+      "resolved_id": "z-ai/glm-4.7-flash",
+      "status": "confirmed",
+      "label": "GLM 4.7 Flash",
+      "input_cost_per_million": 0.06,
+      "output_cost_per_million": 0.4,
+      "source_url": "https://openrouter.ai/z-ai/glm-4.7-flash",
+      "note": "Confirmed current smaller-tier Z.ai candidate."
     },
     {
       "group": "smaller",
@@ -92,6 +92,17 @@
     },
     {
       "group": "wildcard",
+      "requested_id": "z-ai/glm-5-turbo",
+      "resolved_id": "z-ai/glm-5-turbo",
+      "status": "confirmed",
+      "label": "GLM 5 Turbo",
+      "input_cost_per_million": 0.96,
+      "output_cost_per_million": 3.2,
+      "source_url": "https://openrouter.ai/z-ai/glm-5-turbo",
+      "note": "Moved to the wildcard group for comparison against atypical mid-priced options."
+    },
+    {
+      "group": "wildcard",
       "requested_id": "mistralai/mistral-large-2512",
       "resolved_id": "mistralai/mistral-large-2512",
       "status": "confirmed",
@@ -125,14 +136,14 @@
     },
     {
       "group": "wildcard",
-      "requested_id": "minimax/minimax-m2.7",
-      "resolved_id": "minimax/minimax-m2.5:nitro",
-      "status": "resolved_substitute",
+      "requested_id": "minimax/minimax-m2.5",
+      "resolved_id": "minimax/minimax-m2.5",
+      "status": "confirmed",
       "label": "MiniMax M2.5",
-      "input_cost_per_million": 0.25,
+      "input_cost_per_million": 0.2,
       "output_cost_per_million": 1.2,
-      "source_url": "https://openrouter.ai/minimax/minimax-m2.5-20260211%3Anitro",
-      "note": "No OpenRouter listing was found for minimax-m2.7 on 2026-03-19. The closest current available model is minimax-m2.5:nitro."
+      "source_url": "https://openrouter.ai/minimax/minimax-m2.5",
+      "note": "Confirmed current MiniMax wildcard candidate."
     }
   ]
 }
