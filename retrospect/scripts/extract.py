@@ -230,6 +230,23 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable OpenRouter's response-healing plugin",
     )
+    parser.add_argument(
+        "--provider-data-collection",
+        choices=["allow", "deny"],
+        default=None,
+        help="Restrict routing based on provider data-collection policy.",
+    )
+    parser.add_argument(
+        "--zdr-only",
+        action="store_true",
+        help="Restrict routing to Zero Data Retention endpoints only.",
+    )
+    parser.add_argument(
+        "--provider-sort",
+        choices=["price", "throughput"],
+        default=None,
+        help="Optional provider sort preference for OpenRouter routing.",
+    )
     return parser.parse_args()
 
 
@@ -490,6 +507,14 @@ def build_payload(
     user_prompt: str,
     schema: dict[str, Any],
 ) -> dict[str, Any]:
+    provider_preferences: dict[str, Any] = {"require_parameters": True}
+    if args.provider_data_collection:
+        provider_preferences["data_collection"] = args.provider_data_collection
+    if args.zdr_only:
+        provider_preferences["zdr"] = True
+    if args.provider_sort:
+        provider_preferences["sort"] = args.provider_sort
+
     payload: dict[str, Any] = {
         "model": args.model,
         "messages": [
@@ -497,7 +522,7 @@ def build_payload(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": args.temperature,
-        "provider": {"require_parameters": True},
+        "provider": provider_preferences,
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -792,6 +817,11 @@ def build_manifest(
         "model": args.model,
         "model_slug": slugify(args.model),
         "selected_passes": args.pass_ids or list(validate_extraction.PASS_SCHEMAS.keys()),
+        "provider_preferences": {
+            "data_collection": args.provider_data_collection,
+            "zdr_only": args.zdr_only,
+            "sort": args.provider_sort,
+        },
         "chat_count": len({task.chat.path for task in tasks}),
         "task_count": len(tasks),
         "status_counts": status_counts,

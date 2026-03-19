@@ -8,10 +8,13 @@
 - `scripts/extract.py` runs the four extraction passes against normalized chats and writes validated JSON outputs under `data/extractions/`
 - `scripts/validate_extraction.py` validates extraction JSON against the schemas in `schemas/`
 - `scripts/select_representative_sample.py` creates a small deterministic sample for model-pricing experiments under `data/samples/`
+- `scripts/select_eval_trio.py` creates a fixed small/medium/large trio for empirical cross-model runs
 - `scripts/analyze_model_costs.py` projects sample and full-archive costs across the model catalog and writes reports under `data/reports/`
+- `scripts/run_model_panel.py` runs a fixed chat list across a model panel and emits manual quality/privacy review templates
 - `prompts/` contains the Jinja prompt templates for each extraction pass
 - `schemas/` contains the JSON Schemas that define the extraction contract
 - `config/model_catalog.json` tracks the current model shortlist, pricing, and resolution notes for renamed or missing SKUs
+- `notebooks/model_panel_review.ipynb` is the inspection notebook for cost, quality, and privacy review artifacts
 
 ## Data Directory
 
@@ -109,5 +112,7 @@ From `retrospect/`:
 ./.venv/bin/python scripts/extract.py --model google/gemini-2.0-flash-001 --limit 5
 ./.venv/bin/python scripts/validate_extraction.py data/extractions/
 ./.venv/bin/python scripts/select_representative_sample.py
+./.venv/bin/python scripts/select_eval_trio.py
 ./.venv/bin/python scripts/analyze_model_costs.py
+./.venv/bin/python scripts/run_model_panel.py --group smaller
 ```
