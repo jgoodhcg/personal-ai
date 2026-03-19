@@ -38,12 +38,23 @@ To produce trustworthy psychological analysis, we separate:
 - **Interpretation** — what the model thinks that may imply
 - **Framework mapping** — how evidence maps onto personality frameworks
 
+We also track the **epistemic tier** of an extraction so downstream synthesis can keep:
+
+- **Factual memory** separate from
+- **Behavioral pattern** observations, separate from
+- **Interpretive hypothesis** layers, separate from
+- **Speculative/playful** material
+
+These tiers should never be collapsed in final synthesis or RAG deployment.
+
 Every extracted item includes:
+- `epistemic_tier` — factual_memory / behavioral_pattern / interpretive_hypothesis / speculative_play
 - `signal` — the extracted item
 - `interpretation` — what it might mean
 - `evidence` — direct quotes or references
 - `confidence` — how certain (low/medium/high)
 - `salience` — how central to the conversation (peripheral/central/primary)
+- `disconfirming_evidence` — evidence that weakens or limits the claim
 - `alternative_explanations` — plausible competing interpretations
 - `source_conversation_id` — traceability back to the originating chat
 
@@ -106,6 +117,9 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
 - Narrative identity themes
 - Relationship themes
 - Temporal patterns (seasonal, weekly, life-phase)
+- Recurrence counts, spread across time, and cross-context consistency for any elevated claim
+
+No trait-level or framework-level claim should be synthesized unless it shows up with meaningful support across multiple conversations and time slices. The aggregation phase should favor frequency, temporal spread, and contextual diversity over vivid single-chat anecdotes.
 
 **Narrative and Creative Potential**
 - `recurring_tensions` — unresolved conflicts, contradictions, or frictions that surface repeatedly (internal vs. external, self vs. world, desire vs. duty)
@@ -129,21 +143,23 @@ After all extractions complete, a **separate inference pass** aggregates evidenc
 
 6. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
 
-7. **Synthesize** — Generate knowledge base documents in `retrospect/data/knowledge_base/`:
-   - `personal_profile.md` — biographical facts, cognitive style, values
-   - `interest_map.md` — domains, intensity, connections, evolution
-   - `goals_and_projects.md` — active/recurring/completed goals, project index
-   - `working_with_me.md` — instructions for AI assistants
-   - `decision_patterns.md` — how decisions are approached
-   - `ideas_gallery.md` — full catalog with patterns
-   - `media_and_influences.md` — cultural references and tastes
-   - `psychological_profile.md` — evidence-based personality analysis
-   - `relationship_map.md` — people and social patterns
-   - `narrative_potential.md` — recurring tensions, fascinations, and thematic threads with storytelling potential
+7. **Synthesize** — Generate two classes of documents:
+   - **Assistant-context / RAG-safe docs** in `retrospect/data/knowledge_base/assistant_context/`:
+     - `personal_profile.md` — biographical facts, stable preferences, working style
+     - `interest_map.md` — domains, intensity, connections, evolution
+     - `goals_and_projects.md` — active/recurring/completed goals, project index
+     - `working_with_me.md` — instructions for AI assistants
+     - `decision_patterns.md` — practical decision habits grounded in repeated evidence
+     - `media_and_influences.md` — cultural references and tastes
+   - **Interpretive analysis docs** in `retrospect/data/knowledge_base/analysis/`:
+     - `ideas_gallery.md` — full catalog with patterns
+     - `psychological_profile.md` — evidence-based personality analysis with explicit confidence and disconfirming evidence
+     - `relationship_map.md` — people and social patterns
+     - `narrative_potential.md` — recurring tensions, fascinations, and thematic threads with storytelling potential
 
 8. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
 
-9. **Deploy** — Upload knowledge base documents to Open WebUI as RAG documents.
+9. **Deploy** — Upload only the assistant-context documents to Open WebUI as RAG documents by default. Interpretive analysis docs require explicit opt-in after review.
 
 ### Data Flow
 
@@ -170,9 +186,11 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - [x] Extraction schema defined and validated
 - [ ] Sample run of 100 conversations produces valid JSON
 - [ ] Each pass extracts target fields correctly
-- [ ] Evidence and confidence fields populated
+- [ ] Evidence is verbatim or turn-referenced and confidence is calibrated
+- [ ] Negative-space reporting is populated for low-signal conversations
 - [ ] Aggregation deduplicates and counts correctly
-- [ ] Derived analysis produces framework mappings with evidence
+- [ ] Derived analysis produces framework mappings with evidence, disconfirming evidence, and recurrence thresholds
+- [ ] Sample evaluation rubric captures false positives for Pass 3 and Pass 4
 - [ ] Synthesized docs are factual and cited
 - [ ] Human review completed before any upload
 - [ ] Documents searchable in Open WebUI RAG
@@ -195,7 +213,7 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 ### Deferred to Aggregation Phase
 - Learning trajectory / mind changes
 - Contradiction detection across conversations
-- Temporal pattern analysis
+- Temporal pattern analysis and time-sliced summaries
 
 ## Value Targets
 
@@ -206,6 +224,8 @@ The extraction effort aims to produce five kinds of value:
 3. **Psychology value** — how you think, feel, cope, decide, attach, and self-narrate
 4. **Identity value** — the recurring shape of your interests, motivations, taste, and personal mythology
 5. **Creative value** — tensions, fascinations, and thematic threads that could fuel storytelling or creative work
+
+The primary product is not "a personality type." The primary product is a high-trust evidence base that supports memory recall, working-context documents, pattern detection, and carefully bounded interpretive synthesis.
 
 ## Context
 
@@ -230,9 +250,12 @@ The extraction effort aims to produce five kinds of value:
 4. Smoke test: 5 conversations x 4 passes, validate all outputs
 5. Model comparison: 100-chat sample across candidate models
    - Candidates: `google/gemini-2.0-flash-lite-001`, `google/gemini-2.0-flash-001`, `openai/gpt-4o-mini`
-   - Compare: validity rate, cost, field completeness, evidence quality
+   - Compare: validity rate, cost, field completeness, evidence quality, false-positive rate in interpretive passes
    - Record decision in `.decisions/retrospect-extraction-model-selection.json`
 6. Execute full extraction with chosen model(s)
 7. Build aggregation script (`retrospect/scripts/aggregate.py`)
+   - Add recurrence counts, temporal spread, and cross-context consistency scoring
 8. Build inference script (`retrospect/scripts/infer.py`)
+   - Require disconfirming evidence and time-sliced checks for elevated claims
 9. Build synthesis script (`retrospect/scripts/synthesize.py`)
+   - Split assistant-context outputs from interpretive-analysis outputs

@@ -33,6 +33,19 @@
             "enum": ["positive", "negative", "mixed", "neutral"],
             "description": "Apparent sentiment toward this person."
           },
+          "power_dynamic": {
+            "type": "string",
+            "enum": [
+              "peer",
+              "subordinate",
+              "superior",
+              "mentor",
+              "dependent",
+              "audience",
+              "unclear"
+            ],
+            "description": "Observed or implied power dynamic relative to the user."
+          },
           "recurring": {
             "type": "boolean",
             "description": "Whether this person seems to be a recurring figure (based on context clues within this conversation)."
@@ -44,7 +57,15 @@
           },
           "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
         },
-        "required": ["name", "role", "context", "sentiment", "evidence", "confidence"],
+        "required": [
+          "name",
+          "role",
+          "context",
+          "sentiment",
+          "power_dynamic",
+          "evidence",
+          "confidence"
+        ],
         "additionalProperties": false
       },
       "description": "People mentioned, relationship roles, and sentiment."
@@ -86,8 +107,13 @@
         "additionalProperties": false
       },
       "description": "Friction points, blocks, and frustrations with source attribution."
+    },
+    "negative_space": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Brief notes about why no meaningful people, values, or frustrations were extracted."
     }
   },
-  "required": ["metadata"],
+  "required": ["metadata", "negative_space"],
   "additionalProperties": false
 }

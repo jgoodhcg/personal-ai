@@ -14,6 +14,24 @@
       "type": ["string", "null"],
       "description": "Why this conversation matters, if it does. Null if routine/unremarkable."
     },
+    "significance_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "routine",
+          "milestone",
+          "learning_breakthrough",
+          "decision_point",
+          "relationship_signal",
+          "identity_signal",
+          "creative_seed",
+          "psychological_signal",
+          "operational"
+        ]
+      },
+      "description": "Categorical tags for the significance of the conversation. Use [] when significance is null or routine."
+    },
     "topics_and_interests": {
       "type": "array",
       "items": {
@@ -86,8 +104,19 @@
         "additionalProperties": false
       },
       "description": "Technical skills, languages, frameworks, and tools discussed."
+    },
+    "negative_space": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Brief notes about meaningful things that were looked for but not present or why the conversation yields little enduring value."
     }
   },
-  "required": ["metadata", "summary", "topics_and_interests"],
+  "required": [
+    "metadata",
+    "summary",
+    "significance_categories",
+    "topics_and_interests",
+    "negative_space"
+  ],
   "additionalProperties": false
 }

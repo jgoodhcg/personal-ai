@@ -24,6 +24,16 @@
             "enum": ["ideating", "planning", "active", "stalled", "shipped", "abandoned", "unknown"],
             "description": "Apparent project status."
           },
+          "blockers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Observed blockers, constraints, or friction points affecting this project."
+          },
+          "next_steps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Concrete next actions or immediate follow-up steps implied in the conversation."
+          },
           "evidence": {
             "type": "array",
             "items": { "type": "string" },
@@ -155,8 +165,13 @@
         "additionalProperties": false
       },
       "description": "Unresolved questions or problems surfaced in the conversation."
+    },
+    "negative_space": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Brief notes about why no durable projects, goals, or unresolved questions were extracted."
     }
   },
-  "required": ["metadata"],
+  "required": ["metadata", "negative_space"],
   "additionalProperties": false
 }
