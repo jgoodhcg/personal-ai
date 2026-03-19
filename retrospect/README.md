@@ -7,8 +7,11 @@
 - `scripts/normalize_exports.py` normalizes raw platform exports into one-markdown-file-per-chat under `data/chats/`
 - `scripts/extract.py` runs the four extraction passes against normalized chats and writes validated JSON outputs under `data/extractions/`
 - `scripts/validate_extraction.py` validates extraction JSON against the schemas in `schemas/`
+- `scripts/select_representative_sample.py` creates a small deterministic sample for model-pricing experiments under `data/samples/`
+- `scripts/analyze_model_costs.py` projects sample and full-archive costs across the model catalog and writes reports under `data/reports/`
 - `prompts/` contains the Jinja prompt templates for each extraction pass
 - `schemas/` contains the JSON Schemas that define the extraction contract
+- `config/model_catalog.json` tracks the current model shortlist, pricing, and resolution notes for renamed or missing SKUs
 
 ## Data Directory
 
@@ -43,6 +46,12 @@ All working data for this subproject lives under `retrospect/data/`. It is inten
   - reported token usage
   - reported cost
   - failure summaries
+
+- `data/samples/`
+  Deterministic sample manifests and newline-delimited chat lists for model-comparison runs.
+
+- `data/reports/`
+  Generated cost-analysis markdown reports and other local analysis artifacts.
 
 ### Extraction Output Layout
 
@@ -99,4 +108,6 @@ From `retrospect/`:
 ./.venv/bin/python scripts/normalize_exports.py
 ./.venv/bin/python scripts/extract.py --model google/gemini-2.0-flash-001 --limit 5
 ./.venv/bin/python scripts/validate_extraction.py data/extractions/
+./.venv/bin/python scripts/select_representative_sample.py
+./.venv/bin/python scripts/analyze_model_costs.py
 ```

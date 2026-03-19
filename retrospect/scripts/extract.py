@@ -31,6 +31,7 @@ import requests
 import yaml
 from jinja2 import Template
 from jsonschema import Draft202012Validator
+from yaml import YAMLError
 
 import validate_extraction
 
@@ -153,6 +154,11 @@ def parse_args() -> argparse.Namespace:
         help="Specific chat markdown file to process. Repeatable.",
     )
     parser.add_argument(
+        "--chat-list-file",
+        dest="chat_list_file",
+        help="Path to a newline-delimited list of chat files to process.",
+    )
+    parser.add_argument(
         "--concurrency",
         type=int,
         default=4,
@@ -263,7 +269,7 @@ def parse_chat_document(path: Path) -> ChatDocument:
     if not match:
         raise ValueError(f"{path} is missing YAML frontmatter")
 
-    metadata = yaml.safe_load(match.group(1)) or {}
+    metadata = parse_frontmatter(match.group(1))
     conversation_body = match.group(2).strip()
     conversation_text = annotate_turns(conversation_body)
 
@@ -276,6 +282,33 @@ def parse_chat_document(path: Path) -> ChatDocument:
         message_count=int(metadata.get("message_count", 0)),
         conversation_text=conversation_text,
     )
+
+
+def parse_frontmatter(frontmatter_text: str) -> dict[str, Any]:
+    try:
+        loaded = yaml.safe_load(frontmatter_text) or {}
+        if isinstance(loaded, dict):
+            return loaded
+    except YAMLError:
+        pass
+
+    # Some normalized chats contain unescaped quotes in title values.
+    # Fall back to a tolerant line-based parser for this narrow frontmatter shape.
+    parsed: dict[str, Any] = {}
+    for line in frontmatter_text.splitlines():
+        stripped = line.strip()
+        if not stripped or ":" not in stripped:
+            continue
+        key, raw_value = stripped.split(":", 1)
+        key = key.strip()
+        value = raw_value.strip()
+        if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+            value = value[1:-1]
+        if value.isdigit():
+            parsed[key] = int(value)
+        else:
+            parsed[key] = value
+    return parsed
 
 
 def annotate_turns(body: str) -> str:
@@ -664,8 +697,20 @@ async def execute_task(
 
 
 def discover_chat_paths(args: argparse.Namespace) -> list[Path]:
-    if args.chat_paths:
-        paths = [Path(path).expanduser() for path in args.chat_paths]
+    if args.chat_paths or args.chat_list_file:
+        listed_paths = list(args.chat_paths or [])
+        if args.chat_list_file:
+            list_path = Path(args.chat_list_file).expanduser()
+            if not list_path.is_absolute():
+                list_path = (RETROSPECT_ROOT / list_path).resolve()
+            if not list_path.exists():
+                raise FileNotFoundError(f"Chat list file not found: {args.chat_list_file}")
+            for raw_line in list_path.read_text(encoding="utf-8").splitlines():
+                stripped = raw_line.strip()
+                if stripped and not stripped.startswith("#"):
+                    listed_paths.append(stripped)
+
+        paths = [Path(path).expanduser() for path in listed_paths]
         resolved = []
         for path in paths:
             candidate = path if path.is_absolute() else (RETROSPECT_ROOT / path)
