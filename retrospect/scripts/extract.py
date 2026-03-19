@@ -466,6 +466,37 @@ def normalize_response_text(content: Any) -> str:
     raise ValueError(f"Unsupported response content shape: {type(content).__name__}")
 
 
+def extract_response_text(message: dict[str, Any]) -> str:
+    content = message.get("content")
+    if content is not None:
+        return normalize_response_text(content)
+
+    parsed = message.get("parsed")
+    if parsed is not None:
+        if isinstance(parsed, str):
+            return parsed.strip()
+        return json.dumps(parsed, ensure_ascii=False)
+
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list) and len(tool_calls) == 1:
+        function = tool_calls[0].get("function")
+        if isinstance(function, dict):
+            arguments = function.get("arguments")
+            if isinstance(arguments, str):
+                return arguments.strip()
+            if arguments is not None:
+                return json.dumps(arguments, ensure_ascii=False)
+
+    refusal = message.get("refusal")
+    if isinstance(refusal, str) and refusal.strip():
+        raise ValueError(f"Model refusal: {refusal.strip()}")
+
+    raise ValueError(
+        "Unsupported response message shape: "
+        f"content={type(content).__name__}, keys={sorted(message.keys())}"
+    )
+
+
 def strip_code_fences(text: str) -> str:
     fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
     return fenced.group(1).strip() if fenced else text
@@ -586,6 +617,41 @@ def extract_http_error(response: requests.Response) -> str:
     return f"HTTP {response.status_code}: {response.text[:500]}"
 
 
+def summarize_response_message(response_json: dict[str, Any]) -> dict[str, Any] | None:
+    try:
+        message = response_json["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+    summary: dict[str, Any] = {"keys": sorted(message.keys())}
+    for key in ["role", "refusal", "finish_reason"]:
+        value = message.get(key)
+        if value is not None:
+            summary[key] = value
+
+    content = message.get("content")
+    summary["content_type"] = type(content).__name__
+    if isinstance(content, str):
+        summary["content_preview"] = content[:500]
+    elif isinstance(content, list):
+        summary["content_preview"] = content[:2]
+
+    parsed = message.get("parsed")
+    if parsed is not None:
+        summary["parsed_type"] = type(parsed).__name__
+        summary["parsed_preview"] = parsed if isinstance(parsed, (str, int, float, bool)) else (
+            list(parsed)[:5] if isinstance(parsed, list) else dict(list(parsed.items())[:5]) if isinstance(parsed, dict) else str(parsed)
+        )
+
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list):
+        summary["tool_call_count"] = len(tool_calls)
+        if tool_calls:
+            summary["tool_call_preview"] = tool_calls[0]
+
+    return summary
+
+
 def write_failure_artifact(
     run_dir: Path,
     task: ExtractionTask,
@@ -647,11 +713,12 @@ async def execute_task(
         try:
             response_json = await asyncio.to_thread(request_completion, args, headers, payload)
             message = response_json["choices"][0]["message"]
-            response_text = strip_code_fences(
-                normalize_response_text(message.get("content"))
-            )
+            response_text = strip_code_fences(extract_response_text(message))
             extracted = json.loads(response_text)
         except Exception as exc:
+            response_summary = None
+            if "response_json" in locals():
+                response_summary = summarize_response_message(response_json)
             write_failure_artifact(
                 run_dir,
                 task,
@@ -659,6 +726,8 @@ async def execute_task(
                 {
                     "error": str(exc),
                     "request_payload": payload,
+                    "response_summary": response_summary,
+                    "response_json": response_json if "response_json" in locals() else None,
                 },
             )
             return TaskResult(

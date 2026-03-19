@@ -74,9 +74,14 @@ def parse_args() -> argparse.Namespace:
         help="Optional provider sort for OpenRouter routing",
     )
     parser.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Reuse prior extraction outputs instead of forcing fresh model runs.",
+    )
+    parser.add_argument(
         "--rerun",
         action="store_true",
-        help="Force new extraction outputs even if prior outputs already exist",
+        help="Deprecated alias; panel runs force fresh extraction outputs by default.",
     )
     return parser.parse_args()
 
@@ -112,7 +117,7 @@ def build_command(args: argparse.Namespace, model_id: str, chat_list_path: Path)
         command.append("--zdr-only")
     if args.provider_sort:
         command.extend(["--provider-sort", args.provider_sort])
-    if args.rerun:
+    if args.rerun or not args.reuse_existing:
         command.append("--rerun")
     return command
 
@@ -120,6 +125,27 @@ def build_command(args: argparse.Namespace, model_id: str, chat_list_path: Path)
 def parse_manifest_path(stdout: str) -> str | None:
     match = re.search(r"Manifest:\s+(.*)", stdout)
     return match.group(1).strip() if match else None
+
+
+def run_streaming(command: list[str], cwd: Path) -> tuple[int, str]:
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+    )
+    assert process.stdout is not None
+
+    lines: list[str] = []
+    for line in process.stdout:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+        lines.append(line)
+
+    returncode = process.wait()
+    return returncode, "".join(lines)
 
 
 def write_quality_template(
@@ -250,21 +276,22 @@ def main() -> None:
             )
             continue
 
-        completed = subprocess.run(
-            command,
-            cwd=RETROSPECT_ROOT,
-            text=True,
-            capture_output=True,
+        print(f"Running model: {model['resolved_id']}", flush=True)
+        returncode, combined_output = run_streaming(command, RETROSPECT_ROOT)
+        manifest_path = parse_manifest_path(combined_output)
+        print(
+            f"Completed model: {model['resolved_id']} "
+            f"({'ok' if returncode == 0 else 'failed'})",
+            flush=True,
         )
-        manifest_path = parse_manifest_path(completed.stdout)
         run_results.append(
             {
                 "model": model["resolved_id"],
-                "status": "success" if completed.returncode == 0 else "failed",
+                "status": "success" if returncode == 0 else "failed",
                 "manifest_path": manifest_path,
-                "returncode": completed.returncode,
-                "stdout": completed.stdout,
-                "stderr": completed.stderr,
+                "returncode": returncode,
+                "stdout": combined_output,
+                "stderr": None,
             }
         )
 
