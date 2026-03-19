@@ -93,6 +93,11 @@ class TaskResult:
     reported_cost: float | None = None
 
 
+@dataclass
+class RunState:
+    fatal_error: str | None = None
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -445,6 +450,13 @@ def usage_cost(usage: dict[str, Any]) -> float | None:
         return None
 
 
+def is_model_level_fatal_error(error: str) -> bool:
+    fatal_signatures = [
+        "No endpoints found that can handle the requested parameters",
+    ]
+    return any(signature in error for signature in fatal_signatures)
+
+
 def normalize_response_text(content: Any) -> str:
     if isinstance(content, str):
         return content.strip()
@@ -674,6 +686,7 @@ async def execute_task(
     model_slug: str,
     semaphore: asyncio.Semaphore,
     model_schemas: dict[str, dict[str, Any]],
+    run_state: RunState,
 ) -> TaskResult:
     system_prompt, user_prompt = render_prompt(task.pass_id, task.chat)
     estimated_prompt_tokens = estimate_tokens(system_prompt) + estimate_tokens(user_prompt)
@@ -701,6 +714,15 @@ async def execute_task(
             completion_tokens_estimate=estimated_completion_tokens,
         )
 
+    if run_state.fatal_error:
+        return TaskResult(
+            task=task,
+            status="failed",
+            error=f"Aborted after prior fatal model error: {run_state.fatal_error}",
+            prompt_tokens_estimate=estimated_prompt_tokens,
+            completion_tokens_estimate=estimated_completion_tokens,
+        )
+
     payload = build_payload(
         args,
         task.pass_id,
@@ -710,12 +732,25 @@ async def execute_task(
     )
 
     async with semaphore:
+        if run_state.fatal_error:
+            return TaskResult(
+                task=task,
+                status="failed",
+                error=f"Aborted after prior fatal model error: {run_state.fatal_error}",
+                prompt_tokens_estimate=estimated_prompt_tokens,
+                completion_tokens_estimate=estimated_completion_tokens,
+            )
+
+        print(f"  starting {task.pass_id} {task.chat.path.name}", flush=True)
         try:
             response_json = await asyncio.to_thread(request_completion, args, headers, payload)
             message = response_json["choices"][0]["message"]
             response_text = strip_code_fences(extract_response_text(message))
             extracted = json.loads(response_text)
         except Exception as exc:
+            error_text = str(exc)
+            if is_model_level_fatal_error(error_text) and run_state.fatal_error is None:
+                run_state.fatal_error = error_text
             response_summary = None
             if "response_json" in locals():
                 response_summary = summarize_response_message(response_json)
@@ -724,7 +759,7 @@ async def execute_task(
                 task,
                 "request-error",
                 {
-                    "error": str(exc),
+                    "error": error_text,
                     "request_payload": payload,
                     "response_summary": response_summary,
                     "response_json": response_json if "response_json" in locals() else None,
@@ -733,7 +768,7 @@ async def execute_task(
             return TaskResult(
                 task=task,
                 status="failed",
-                error=str(exc),
+                error=error_text,
                 prompt_tokens_estimate=estimated_prompt_tokens,
                 completion_tokens_estimate=estimated_completion_tokens,
             )
@@ -982,6 +1017,7 @@ async def run() -> int:
 
     started_at = iso_now()
     semaphore = asyncio.Semaphore(max(1, args.concurrency))
+    run_state = RunState()
     coroutines = [
         execute_task(
             args,
@@ -992,6 +1028,7 @@ async def run() -> int:
             model_slug=model_slug,
             semaphore=semaphore,
             model_schemas=model_schemas,
+            run_state=run_state,
         )
         for task in tasks
     ]

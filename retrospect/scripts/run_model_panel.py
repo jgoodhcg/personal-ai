@@ -74,6 +74,18 @@ def parse_args() -> argparse.Namespace:
         help="Optional provider sort for OpenRouter routing",
     )
     parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=90,
+        help="Per-request timeout forwarded to extract.py for panel runs.",
+    )
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=1,
+        help="Retry count forwarded to extract.py for panel runs.",
+    )
+    parser.add_argument(
         "--reuse-existing",
         action="store_true",
         help="Reuse prior extraction outputs instead of forcing fresh model runs.",
@@ -110,6 +122,10 @@ def build_command(args: argparse.Namespace, model_id: str, chat_list_path: Path)
         str(chat_list_path),
         "--concurrency",
         "1",
+        "--timeout-seconds",
+        str(args.timeout_seconds),
+        "--max-retries",
+        str(args.max_retries),
     ]
     if args.provider_data_collection:
         command.extend(["--provider-data-collection", args.provider_data_collection])
