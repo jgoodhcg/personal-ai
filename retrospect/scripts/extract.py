@@ -52,6 +52,13 @@ PASS_PROMPTS = {
     "pass4_psych": "pass4_psych.md.j2",
 }
 
+PASS_LABELS = {
+    "pass1_summary": "summary",
+    "pass2_projects": "projects",
+    "pass3_people": "people",
+    "pass4_psych": "psych",
+}
+
 DEFAULT_OUTPUT_TOKENS = {
     "pass1_summary": 450,
     "pass2_projects": 700,
@@ -91,11 +98,116 @@ class TaskResult:
     completion_tokens_actual: int | None = None
     total_tokens_actual: int | None = None
     reported_cost: float | None = None
+    task_duration_seconds: float = 0.0
 
 
 @dataclass
 class RunState:
     fatal_error: str | None = None
+
+
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+class Reporter:
+    def __init__(
+        self,
+        *,
+        debug: bool,
+        color_mode: str,
+        debug_log_file: str | None,
+    ) -> None:
+        self.debug = debug
+        self.color_enabled = self._resolve_color_mode(color_mode)
+        self.log_handle = None
+        if debug_log_file:
+            path = Path(debug_log_file).expanduser()
+            if not path.is_absolute():
+                path = (RETROSPECT_ROOT / path).resolve()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self.log_handle = open(path, "a", encoding="utf-8")
+
+    def close(self) -> None:
+        if self.log_handle:
+            self.log_handle.close()
+            self.log_handle = None
+
+    def _resolve_color_mode(self, color_mode: str) -> bool:
+        if color_mode == "always":
+            return True
+        if color_mode == "never" or os.getenv("NO_COLOR"):
+            return False
+        return sys.stdout.isatty()
+
+    def _style(self, text: str, code: str) -> str:
+        if not self.color_enabled:
+            return text
+        return f"\033[{code}m{text}\033[0m"
+
+    def _plain(self, text: str) -> str:
+        return ANSI_RE.sub("", text)
+
+    def emit(self, text: str) -> None:
+        print(text, flush=True)
+        if self.log_handle:
+            self.log_handle.write(self._plain(text) + "\n")
+            self.log_handle.flush()
+
+    def rule(self, title: str) -> None:
+        self.emit(self._style(f"== {title} ==", "1;36"))
+
+    def note(self, text: str) -> None:
+        self.emit(self._style(text, "2"))
+
+    def info(self, label: str, value: str) -> None:
+        self.emit(f"{self._style(label + ':', '1;34')} {value}")
+
+    def task_start(self, task: ExtractionTask) -> None:
+        label = short_chat_label(task.chat.path)
+        pass_name = PASS_LABELS.get(task.pass_id, task.pass_id)
+        self.emit(
+            f"{self._style('→', '36')} "
+            f"{self._style(pass_name.ljust(8), '1;34')} "
+            f"{self._style(label, '37')}"
+        )
+
+    def task_result(self, index: int, total: int, result: TaskResult) -> None:
+        pass_name = PASS_LABELS.get(result.task.pass_id, result.task.pass_id)
+        label = short_chat_label(result.task.chat.path)
+        status_styles = {
+            "success": ("✓", "1;32"),
+            "failed": ("✗", "1;31"),
+            "skipped": ("↷", "1;33"),
+            "dry_run": ("·", "1;36"),
+        }
+        symbol, style = status_styles.get(result.status, ("?", "1;37"))
+        duration = f"{result.task_duration_seconds:.2f}s"
+        line = (
+            f"{self._style(symbol, style)} "
+            f"{self._style(f'{index:02d}/{total:02d}', '2')} "
+            f"{self._style(pass_name.ljust(8), '1;34')} "
+            f"{label} "
+            f"{self._style(duration, '2')}"
+        )
+        self.emit(line)
+        if result.error:
+            error_text = result.error if self.debug else truncate_text(first_line(result.error), 140)
+            self.emit(f"  {self._style(error_text, '31')}")
+
+
+def truncate_text(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def first_line(text: str) -> str:
+    return text.splitlines()[0] if text else ""
+
+
+def short_chat_label(path: Path) -> str:
+    stem = path.stem
+    parts = stem.split("_", 3)
+    label = parts[3] if len(parts) >= 4 else stem
+    return truncate_text(label.replace("-", " "), 56)
 
 
 def utc_now() -> datetime:
@@ -182,8 +294,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--temperature",
         type=float,
-        default=0.0,
-        help="Sampling temperature sent to the model",
+        default=None,
+        help="Optional sampling temperature sent to the model. Omit by default.",
     )
     parser.add_argument(
         "--base-url",
@@ -234,6 +346,21 @@ def parse_args() -> argparse.Namespace:
         "--response-healing",
         action="store_true",
         help="Enable OpenRouter's response-healing plugin",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print more detailed errors and preserve verbose run logs.",
+    )
+    parser.add_argument(
+        "--debug-log-file",
+        help="Optional path for a plain-text debug log file.",
+    )
+    parser.add_argument(
+        "--color",
+        choices=["auto", "always", "never"],
+        default="auto",
+        help="Colorize console output. Use 'always' when output is piped through another process.",
     )
     parser.add_argument(
         "--provider-data-collection",
@@ -367,8 +494,97 @@ def strip_runtime_metadata(schema: dict[str, Any]) -> dict[str, Any]:
     return model_schema
 
 
+def schema_allows_null(schema: dict[str, Any]) -> bool:
+    schema_type = schema.get("type")
+    if schema_type == "null":
+        return True
+    if isinstance(schema_type, list) and "null" in schema_type:
+        return True
+    any_of = schema.get("anyOf")
+    if isinstance(any_of, list):
+        return any(
+            isinstance(option, dict) and schema_allows_null(option) for option in any_of
+        )
+    return False
+
+
+def make_nullable(schema: dict[str, Any]) -> dict[str, Any]:
+    updated = copy.deepcopy(schema)
+    schema_type = updated.get("type")
+
+    if isinstance(schema_type, str):
+        updated["type"] = [schema_type, "null"]
+    elif isinstance(schema_type, list):
+        if "null" not in schema_type:
+            updated["type"] = [*schema_type, "null"]
+    elif isinstance(updated.get("anyOf"), list):
+        any_of = updated["anyOf"]
+        if not any(
+            isinstance(option, dict) and option.get("type") == "null" for option in any_of
+        ):
+            any_of.append({"type": "null"})
+    else:
+        wrapped = copy.deepcopy(updated)
+        updated = {"anyOf": [wrapped, {"type": "null"}]}
+        updated.pop("type", None)
+
+    enum_values = updated.get("enum")
+    if isinstance(enum_values, list) and None not in enum_values:
+        updated["enum"] = [*enum_values, None]
+
+    return updated
+
+
+def normalize_strict_schema(node: Any) -> Any:
+    if isinstance(node, list):
+        return [normalize_strict_schema(item) for item in node]
+
+    if not isinstance(node, dict):
+        return node
+
+    normalized = {key: normalize_strict_schema(value) for key, value in node.items()}
+    properties = normalized.get("properties")
+    if isinstance(properties, dict):
+        original_required = set(normalized.get("required", []))
+        normalized_properties: dict[str, Any] = {}
+        for key, value in properties.items():
+            property_schema = value
+            if key not in original_required and isinstance(property_schema, dict):
+                property_schema = make_nullable(property_schema)
+            normalized_properties[key] = property_schema
+        normalized["properties"] = normalized_properties
+        normalized["required"] = list(normalized_properties.keys())
+        normalized["additionalProperties"] = False
+
+    return normalized
+
+
+def prune_optional_nulls(payload: Any, schema: Any) -> Any:
+    if isinstance(payload, list):
+        item_schema = schema.get("items", {}) if isinstance(schema, dict) else {}
+        return [prune_optional_nulls(item, item_schema) for item in payload]
+
+    if not isinstance(payload, dict) or not isinstance(schema, dict):
+        return payload
+
+    properties = schema.get("properties", {})
+    required = set(schema.get("required", []))
+    cleaned: dict[str, Any] = {}
+    for key, value in payload.items():
+        property_schema = properties.get(key)
+        if (
+            value is None
+            and isinstance(property_schema, dict)
+            and key not in required
+            and not schema_allows_null(property_schema)
+        ):
+            continue
+        cleaned[key] = prune_optional_nulls(value, property_schema)
+    return cleaned
+
+
 @lru_cache(maxsize=None)
-def flatten_schema_for_model(pass_id: str) -> dict[str, Any]:
+def flatten_schema_for_model(pass_id: str, strict: bool = True) -> dict[str, Any]:
     root_filename = validate_extraction.PASS_SCHEMAS[pass_id]
     schema_store = {
         "_definitions.json": load_schema_document("_definitions.json"),
@@ -415,7 +631,10 @@ def flatten_schema_for_model(pass_id: str) -> dict[str, Any]:
 
         return node
 
-    return flatten(schema_store[root_filename], root_filename)
+    flattened = flatten(schema_store[root_filename], root_filename)
+    if strict:
+        return normalize_strict_schema(flattened)
+    return flattened
 
 
 def build_output_path(task: ExtractionTask, model_slug: str, run_id: str) -> Path:
@@ -564,7 +783,6 @@ def build_payload(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "temperature": args.temperature,
         "provider": provider_preferences,
         "response_format": {
             "type": "json_schema",
@@ -575,6 +793,8 @@ def build_payload(
             },
         },
     }
+    if args.temperature is not None:
+        payload["temperature"] = args.temperature
     if args.response_healing:
         payload["plugins"] = [{"id": "response-healing"}]
     return payload
@@ -686,7 +906,9 @@ async def execute_task(
     model_slug: str,
     semaphore: asyncio.Semaphore,
     model_schemas: dict[str, dict[str, Any]],
+    source_schemas: dict[str, dict[str, Any]],
     run_state: RunState,
+    reporter: Reporter,
 ) -> TaskResult:
     system_prompt, user_prompt = render_prompt(task.pass_id, task.chat)
     estimated_prompt_tokens = estimate_tokens(system_prompt) + estimate_tokens(user_prompt)
@@ -731,6 +953,7 @@ async def execute_task(
         model_schemas[task.pass_id],
     )
 
+    task_started_clock = time.perf_counter()
     async with semaphore:
         if run_state.fatal_error:
             return TaskResult(
@@ -741,12 +964,13 @@ async def execute_task(
                 completion_tokens_estimate=estimated_completion_tokens,
             )
 
-        print(f"  starting {task.pass_id} {task.chat.path.name}", flush=True)
+        reporter.task_start(task)
         try:
             response_json = await asyncio.to_thread(request_completion, args, headers, payload)
             message = response_json["choices"][0]["message"]
             response_text = strip_code_fences(extract_response_text(message))
             extracted = json.loads(response_text)
+            extracted = prune_optional_nulls(extracted, source_schemas[task.pass_id])
         except Exception as exc:
             error_text = str(exc)
             if is_model_level_fatal_error(error_text) and run_state.fatal_error is None:
@@ -771,6 +995,7 @@ async def execute_task(
                 error=error_text,
                 prompt_tokens_estimate=estimated_prompt_tokens,
                 completion_tokens_estimate=estimated_completion_tokens,
+                task_duration_seconds=time.perf_counter() - task_started_clock,
             )
 
     extraction_timestamp = iso_now()
@@ -822,6 +1047,7 @@ async def execute_task(
         ),
         total_tokens_actual=usage_number(usage, "total_tokens"),
         reported_cost=usage_cost(usage),
+        task_duration_seconds=time.perf_counter() - task_started_clock,
     )
 
 
@@ -875,6 +1101,7 @@ def build_manifest(
     run_id: str,
     started_at: str,
     completed_at: str,
+    duration_seconds: float,
     tasks: list[ExtractionTask],
     results: list[TaskResult],
 ) -> dict[str, Any]:
@@ -917,6 +1144,7 @@ def build_manifest(
         "run_id": run_id,
         "started_at": started_at,
         "completed_at": completed_at,
+        "duration_seconds": round(duration_seconds, 3),
         "mode": "dry_run" if args.dry_run else "extract",
         "model": args.model,
         "model_slug": slugify(args.model),
@@ -948,123 +1176,139 @@ def build_manifest(
     }
 
 
-def print_summary(manifest: dict[str, Any]) -> None:
-    print(f"\nRun ID: {manifest['run_id']}")
-    print(f"Mode: {manifest['mode']}")
-    print(f"Model: {manifest['model']}")
-    print(f"Chats: {manifest['chat_count']}")
-    print(f"Tasks: {manifest['task_count']}")
-    print(f"Status counts: {json.dumps(manifest['status_counts'], sort_keys=True)}")
-    print(
-        "Estimated tokens:"
-        f" prompt={manifest['estimated_prompt_tokens']}"
-        f" completion={manifest['estimated_completion_tokens']}"
+def print_summary(manifest: dict[str, Any], reporter: Reporter) -> None:
+    reporter.rule("Run Summary")
+    reporter.info("Run ID", manifest["run_id"])
+    reporter.info("Mode", manifest["mode"])
+    reporter.info("Model", manifest["model"])
+    reporter.info("Chats", str(manifest["chat_count"]))
+    reporter.info("Tasks", str(manifest["task_count"]))
+    reporter.info("Duration", f"{manifest['duration_seconds']:.3f}s")
+    reporter.info("Status counts", json.dumps(manifest["status_counts"], sort_keys=True))
+    reporter.info(
+        "Estimated tokens",
+        f"prompt={manifest['estimated_prompt_tokens']} completion={manifest['estimated_completion_tokens']}",
     )
     if manifest["estimated_cost"] is not None:
-        print(f"Estimated cost: {manifest['estimated_cost']:.4f}")
+        reporter.info("Estimated cost", f"{manifest['estimated_cost']:.4f}")
     if manifest["actual_total_tokens"] is not None:
-        print(
-            "Actual tokens:"
-            f" prompt={manifest['actual_prompt_tokens']}"
-            f" completion={manifest['actual_completion_tokens']}"
-            f" total={manifest['actual_total_tokens']}"
+        reporter.info(
+            "Actual tokens",
+            f"prompt={manifest['actual_prompt_tokens']} "
+            f"completion={manifest['actual_completion_tokens']} "
+            f"total={manifest['actual_total_tokens']}",
         )
     if manifest["reported_cost_total"] is not None:
-        print(f"Reported cost total: {manifest['reported_cost_total']:.6f}")
+        reporter.info("Reported cost", f"{manifest['reported_cost_total']:.6f}")
 
 
 async def run() -> int:
     load_dotenv(REPO_ROOT / ".env")
     args = parse_args()
-
-    selected_passes = args.pass_ids or list(validate_extraction.PASS_SCHEMAS.keys())
-    args.pass_ids = selected_passes
-
-    if not args.dry_run and not os.getenv("OPENROUTER_API_KEY"):
-        print(
-            "Missing OPENROUTER_API_KEY. Export it or add it to the repo .env file.",
-            file=sys.stderr,
-        )
-        return 1
-
-    chat_paths = discover_chat_paths(args)
-    if not chat_paths:
-        print("No chat files selected.", file=sys.stderr)
-        return 1
-
-    chats = [parse_chat_document(path) for path in chat_paths]
-    tasks = [
-        ExtractionTask(chat=chat, pass_id=pass_id)
-        for chat in chats
-        for pass_id in selected_passes
-    ]
-
-    run_id = f"{compact_timestamp()}__{slugify(args.model)}"
-    run_dir = RUNS_DIR / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    model_slug = slugify(args.model)
-    model_schemas = {
-        pass_id: flatten_schema_for_model(pass_id) for pass_id in selected_passes
-    }
-    headers = build_headers(args) if not args.dry_run else {}
-
-    print(
-        f"Selected {len(chats)} chats, {len(tasks)} tasks"
-        f" across passes: {', '.join(selected_passes)}"
+    reporter = Reporter(
+        debug=args.debug,
+        color_mode=args.color,
+        debug_log_file=args.debug_log_file,
     )
-    if args.dry_run:
-        print("Dry run enabled. No API calls will be made.")
 
-    started_at = iso_now()
-    semaphore = asyncio.Semaphore(max(1, args.concurrency))
-    run_state = RunState()
-    coroutines = [
-        execute_task(
-            args,
-            task,
+    try:
+        selected_passes = args.pass_ids or list(validate_extraction.PASS_SCHEMAS.keys())
+        args.pass_ids = selected_passes
+
+        if not args.dry_run and not os.getenv("OPENROUTER_API_KEY"):
+            print(
+                "Missing OPENROUTER_API_KEY. Export it or add it to the repo .env file.",
+                file=sys.stderr,
+            )
+            return 1
+
+        chat_paths = discover_chat_paths(args)
+        if not chat_paths:
+            print("No chat files selected.", file=sys.stderr)
+            return 1
+
+        chats = [parse_chat_document(path) for path in chat_paths]
+        tasks = [
+            ExtractionTask(chat=chat, pass_id=pass_id)
+            for chat in chats
+            for pass_id in selected_passes
+        ]
+
+        run_id = f"{compact_timestamp()}__{slugify(args.model)}"
+        run_dir = RUNS_DIR / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        model_slug = slugify(args.model)
+        model_schemas = {
+            pass_id: flatten_schema_for_model(pass_id) for pass_id in selected_passes
+        }
+        source_schemas = {
+            pass_id: flatten_schema_for_model(pass_id, strict=False)
+            for pass_id in selected_passes
+        }
+        headers = build_headers(args) if not args.dry_run else {}
+
+        reporter.rule(f"Extract {args.model}")
+        reporter.info("Chats", str(len(chats)))
+        reporter.info("Tasks", str(len(tasks)))
+        reporter.info(
+            "Passes",
+            ", ".join(PASS_LABELS.get(pass_id, pass_id) for pass_id in selected_passes),
+        )
+        if args.dry_run:
+            reporter.note("Dry run enabled. No API calls will be made.")
+
+        started_at = iso_now()
+        started_clock = time.perf_counter()
+        semaphore = asyncio.Semaphore(max(1, args.concurrency))
+        run_state = RunState()
+        coroutines = [
+            execute_task(
+                args,
+                task,
+                run_id=run_id,
+                run_dir=run_dir,
+                headers=headers,
+                model_slug=model_slug,
+                semaphore=semaphore,
+                model_schemas=model_schemas,
+                source_schemas=source_schemas,
+                run_state=run_state,
+                reporter=reporter,
+            )
+            for task in tasks
+        ]
+
+        results: list[TaskResult] = []
+        for index, future in enumerate(asyncio.as_completed(coroutines), start=1):
+            result = await future
+            results.append(result)
+            reporter.task_result(index, len(tasks), result)
+
+        completed_at = iso_now()
+        duration_seconds = time.perf_counter() - started_clock
+        manifest = build_manifest(
+            args=args,
             run_id=run_id,
-            run_dir=run_dir,
-            headers=headers,
-            model_slug=model_slug,
-            semaphore=semaphore,
-            model_schemas=model_schemas,
-            run_state=run_state,
+            started_at=started_at,
+            completed_at=completed_at,
+            duration_seconds=duration_seconds,
+            tasks=tasks,
+            results=results,
         )
-        for task in tasks
-    ]
-
-    results: list[TaskResult] = []
-    for index, future in enumerate(asyncio.as_completed(coroutines), start=1):
-        result = await future
-        results.append(result)
-        print(
-            f"[{index}/{len(tasks)}] {result.status:<7} {result.task.pass_id} "
-            f"{result.task.chat.path.name}"
+        manifest_path = run_dir / "manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
         )
-        if result.error:
-            print(f"  error: {result.error}")
 
-    completed_at = iso_now()
-    manifest = build_manifest(
-        args=args,
-        run_id=run_id,
-        started_at=started_at,
-        completed_at=completed_at,
-        tasks=tasks,
-        results=results,
-    )
-    manifest_path = run_dir / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+        print_summary(manifest, reporter)
+        reporter.info("Manifest", str(manifest_path))
 
-    print_summary(manifest)
-    print(f"Manifest: {manifest_path}")
-
-    if manifest["status_counts"].get("failed", 0):
-        return 1
-    return 0
+        if manifest["status_counts"].get("failed", 0):
+            return 1
+        return 0
+    finally:
+        reporter.close()
 
 
 def main() -> None:

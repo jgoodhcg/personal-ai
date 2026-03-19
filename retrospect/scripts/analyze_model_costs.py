@@ -26,6 +26,7 @@ RETROSPECT_ROOT = Path(__file__).resolve().parent.parent
 CATALOG_PATH = RETROSPECT_ROOT / "config" / "model_catalog.json"
 REPORT_DIR = RETROSPECT_ROOT / "data" / "reports"
 SAMPLE_DIR = RETROSPECT_ROOT / "data" / "samples"
+GROUP_ORDER = ("extra_small", "smaller", "flagship", "wildcard")
 
 
 def parse_args() -> argparse.Namespace:
@@ -241,13 +242,14 @@ def write_report(
         ]
     )
 
-    for group in ("smaller", "flagship", "wildcard"):
+    for group in GROUP_ORDER:
         rows = grouped_rows.get(group, [])
         if not rows:
             continue
+        group_title = group.replace("_", " ").title()
         lines.extend(
             [
-                f"## {group.title()} Group",
+                f"## {group_title} Group",
                 "",
                 "| Model | Input $/M | Output $/M | Sample Heuristic | Full Archive Heuristic | Sample Empirical | Full Archive Empirical |",
                 "|---|---|---|---|---|---|---|",
@@ -263,12 +265,12 @@ def write_report(
             [
                 "",
                 mermaid_chart(
-                    f"{group.title()} Group: Full Archive Heuristic Cost",
+                    f"{group_title} Group: Full Archive Heuristic Cost",
                     rows,
                     "archive_cost_heuristic",
                 ),
                 mermaid_chart(
-                    f"{group.title()} Group: Sample Heuristic Cost",
+                    f"{group_title} Group: Sample Heuristic Cost",
                     rows,
                     "sample_cost_heuristic",
                 ),
