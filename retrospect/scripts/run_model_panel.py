@@ -285,13 +285,27 @@ def extract_live_status(line: str) -> tuple[str, str] | None:
     return result["pass_name"], result["label"]
 
 
-def summarize_current_tasks(tasks: list[tuple[str, str]], limit: int = 2) -> str:
+def summarize_current_tasks(tasks: list[dict[str, Any]], limit: int = 2) -> str:
     if not tasks:
         return "idle"
-    shown = [f"{task_pass}:{label}" if label else task_pass for task_pass, label in tasks[:limit]]
+    now = time.perf_counter()
+    shown = []
+    for task in tasks[:limit]:
+        task_pass = task["pass_name"]
+        label = task["label"]
+        elapsed = now - task["started_clock"]
+        base = f"{task_pass}:{label}" if label else task_pass
+        shown.append(f"{base} ({format_seconds(elapsed)})")
     if len(tasks) > limit:
         shown.append(f"+{len(tasks) - limit}")
     return " | ".join(shown)
+
+
+def slowest_task_age(tasks: list[dict[str, Any]]) -> float | None:
+    if not tasks:
+        return None
+    now = time.perf_counter()
+    return max(now - task["started_clock"] for task in tasks)
 
 
 def style_status(status: str, *, color_mode: str) -> str:
@@ -334,6 +348,13 @@ def render_live_board(
         completed = state.get("completed_tasks", 0)
         total = state.get("total_tasks", 0)
         bar = progress_bar(completed, total)
+        slowest_age = slowest_task_age(state.get("current_tasks", []))
+        warning = ""
+        if slowest_age is not None:
+            if slowest_age >= args.timeout_seconds:
+                warning = style(" timeout?", "1;31", color_mode=args.color)
+            elif slowest_age >= max(30, args.timeout_seconds * 0.5):
+                warning = style(" slow", "1;33", color_mode=args.color)
         lines.append(
             " ".join(
                 [
@@ -346,7 +367,29 @@ def render_live_board(
                     summarize_current_tasks(state.get("current_tasks", [])),
                 ]
             )
+            + warning
         )
+        if state.get("status") == "running" and state.get("current_tasks"):
+            for task in state["current_tasks"][: max(1, min(3, args.request_concurrency))]:
+                task_elapsed = time.perf_counter() - task["started_clock"]
+                lines.append(
+                    "      "
+                    + style(
+                        f"• {task['pass_name']} :: {task['label']} :: {format_seconds(task_elapsed)}",
+                        "2",
+                        color_mode=args.color,
+                    )
+                )
+        idle_age = time.perf_counter() - state["last_update_clock"] if state.get("last_update_clock") else None
+        if idle_age is not None and state["status"] == "running" and idle_age >= 20:
+            lines.append(
+                "      "
+                + style(
+                    f"no extractor update for {format_seconds(idle_age)}",
+                    "33" if idle_age < args.timeout_seconds else "31",
+                    color_mode=args.color,
+                )
+            )
         if state.get("last_error"):
             lines.append(f"      {style(state['last_error'], '31', color_mode=args.color)}")
     return "\n".join(lines)
@@ -537,6 +580,7 @@ def main() -> None:
                 "total_tasks": 12,
                 "current_tasks": [],
                 "last_error": None,
+                "last_update_clock": None,
                 "started_at": None,
                 "completed_at": None,
                 "started_clock": None,
@@ -584,6 +628,7 @@ def main() -> None:
                 state["reader_thread"] = thread
                 state["started_at"] = extract.iso_now()
                 state["started_clock"] = time.perf_counter()
+                state["last_update_clock"] = state["started_clock"]
                 state["status"] = "running"
                 running[state["model"]] = state
 
@@ -600,16 +645,33 @@ def main() -> None:
                     if event_type == "line":
                         line = payload
                         state["stdout_lines"].append(line)
+                        state["last_update_clock"] = time.perf_counter()
                         task_start = parse_task_start(line)
                         if task_start is not None:
-                            state["current_tasks"].append(task_start)
+                            pass_name, label = task_start
+                            state["current_tasks"].append(
+                                {
+                                    "pass_name": pass_name,
+                                    "label": label,
+                                    "started_clock": time.perf_counter(),
+                                }
+                            )
                         task_result = parse_task_result(line)
                         if task_result is not None:
                             state["completed_tasks"] = task_result["completed"]
                             state["total_tasks"] = task_result["total"]
-                            target = (task_result["pass_name"], task_result["label"])
-                            if target in state["current_tasks"]:
-                                state["current_tasks"].remove(target)
+                            target_pass = task_result["pass_name"]
+                            target_label = task_result["label"]
+                            match_index = next(
+                                (
+                                    index
+                                    for index, task in enumerate(state["current_tasks"])
+                                    if task["pass_name"] == target_pass and task["label"] == target_label
+                                ),
+                                None,
+                            )
+                            if match_index is not None:
+                                state["current_tasks"].pop(match_index)
                             elif state["current_tasks"]:
                                 state["current_tasks"].pop(0)
                             if task_result["status"] == "failed":
