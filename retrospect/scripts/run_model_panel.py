@@ -165,7 +165,7 @@ def build_command(
 
 
 def parse_manifest_path(stdout: str) -> str | None:
-    match = re.search(r"Manifest:\s+(.*)", stdout)
+    match = re.search(r"Manifest:\s+(.*)", plain(stdout))
     return match.group(1).strip() if match else None
 
 

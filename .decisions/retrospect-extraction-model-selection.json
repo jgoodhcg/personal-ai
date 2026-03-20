@@ -1,0 +1,589 @@
+{
+  "decision": {
+    "statement": "Which model should power the retrospect extraction pipeline?",
+    "description": "Scope: four-pass structured extraction over the full normalized chat archive. Criteria include empirical trio execution behavior, projected full-archive cost, quality by pass, routing stability, and privacy posture. This matrix is provisional and should tighten as more trio runs and review scores are added."
+  },
+  "options": [
+    {
+      "label": "GPT-5.4 Nano",
+      "description": "OpenAI extra-small candidate."
+    },
+    {
+      "label": "Gemini 3.1 Flash Lite Preview",
+      "description": "Google extra-small candidate."
+    },
+    {
+      "label": "GLM 4.5 Air",
+      "description": "Z.ai extra-small candidate."
+    },
+    {
+      "label": "Claude Haiku 4.5",
+      "description": "Anthropic extra-small candidate."
+    },
+    {
+      "label": "GPT-5.4 Mini",
+      "description": "OpenAI smaller-tier candidate."
+    },
+    {
+      "label": "GLM 4.7 Flash",
+      "description": "Z.ai smaller-tier candidate."
+    },
+    {
+      "label": "Gemini 3 Flash Preview",
+      "description": "Google smaller-tier candidate."
+    },
+    {
+      "label": "Claude Sonnet 4.6",
+      "description": "Anthropic smaller-tier candidate."
+    },
+    {
+      "label": "GPT-5.4",
+      "description": "OpenAI flagship candidate."
+    },
+    {
+      "label": "Gemini 3.1 Pro Preview",
+      "description": "Google flagship candidate."
+    },
+    {
+      "label": "GLM 5",
+      "description": "Z.ai flagship candidate."
+    },
+    {
+      "label": "Claude Opus 4.6",
+      "description": "Anthropic flagship candidate."
+    },
+    {
+      "label": "Mercury 2",
+      "description": "Inception wildcard candidate."
+    },
+    {
+      "label": "GLM 5 Turbo",
+      "description": "Z.ai wildcard candidate."
+    },
+    {
+      "label": "Mistral Large 3 2512",
+      "description": "Mistral wildcard candidate."
+    },
+    {
+      "label": "Qwen3.5 397B A17B",
+      "description": "Qwen wildcard candidate."
+    },
+    {
+      "label": "MiniMax M2.5",
+      "description": "MiniMax wildcard candidate."
+    }
+  ],
+  "criteria": [
+    {
+      "name": "Empirical trio execution reliability",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "12/12 tasks succeeded on the extra-small trio run",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "12/12 tasks succeeded on the extra-small trio run",
+          "color": "green"
+        },
+        "GLM 4.5 Air": {
+          "text": "11/12 tasks succeeded; one response-message shape failure",
+          "color": "yellow"
+        },
+        "Claude Haiku 4.5": {
+          "text": "9/12 tasks succeeded; Pass 4 failed on all three chats",
+          "color": "red"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Empirical trio runtime",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "60.7s for the 3-chat / 12-task trio run",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "53.3s for the 3-chat / 12-task trio run",
+          "color": "green"
+        },
+        "GLM 4.5 Air": {
+          "text": "241.5s for the trio run; much slower than peers",
+          "color": "red"
+        },
+        "Claude Haiku 4.5": {
+          "text": "127.9s for the trio run",
+          "color": "yellow"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Empirical trio sample cost",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "$0.023457 for the trio sample",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "$0.027197 for the trio sample",
+          "color": "green"
+        },
+        "GLM 4.5 Air": {
+          "text": "$0.030033 for the trio sample",
+          "color": "yellow"
+        },
+        "Claude Haiku 4.5": {
+          "text": "$0.084149 for the trio sample",
+          "color": "red"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Heuristic full-archive cost",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "About $20.19 for the full archive",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "About $24.68 for the full archive",
+          "color": "green"
+        },
+        "GLM 4.5 Air": {
+          "text": "About $13.45 for the full archive",
+          "color": "green"
+        },
+        "Claude Haiku 4.5": {
+          "text": "About $89.82 for the full archive",
+          "color": "yellow"
+        },
+        "GPT-5.4 Mini": {
+          "text": "About $74.03 for the full archive",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "About $6.28 for the full archive",
+          "color": "green"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "About $49.35 for the full archive",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "About $269.46 for the full archive",
+          "color": "red"
+        },
+        "GPT-5.4": {
+          "text": "About $246.76 for the full archive",
+          "color": "red"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "About $197.41 for the full archive",
+          "color": "red"
+        },
+        "GLM 5": {
+          "text": "About $53.12 for the full archive",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "About $449.10 for the full archive",
+          "color": "red"
+        },
+        "Mercury 2": {
+          "text": "About $18.01 for the full archive",
+          "color": "green"
+        },
+        "GLM 5 Turbo": {
+          "text": "About $72.01 for the full archive",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "About $36.02 for the full archive",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "About $38.49 for the full archive",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "About $19.74 for the full archive",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Pass quality review",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "Pending manual rubric fill for Passes 1-4",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "Pending manual rubric fill for Passes 1-4",
+          "color": "yellow"
+        },
+        "GLM 4.5 Air": {
+          "text": "Pending manual rubric fill for Passes 1-4",
+          "color": "yellow"
+        },
+        "Claude Haiku 4.5": {
+          "text": "Pending manual rubric fill for Passes 1-4",
+          "color": "yellow"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending trio run and rubric fill",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Privacy and retention posture",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GLM 4.5 Air": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Claude Haiku 4.5": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending privacy review CSV and provider policy pass",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Routing and structured-output confidence",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "Strong current signal: 12/12 succeeded with strict JSON-schema extraction",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "Strong current signal: 12/12 succeeded with strict JSON-schema extraction",
+          "color": "green"
+        },
+        "GLM 4.5 Air": {
+          "text": "One message-shape failure and very slow runtime on the trio run",
+          "color": "red"
+        },
+        "Claude Haiku 4.5": {
+          "text": "Pass 4 returned provider 400 errors across all three chats",
+          "color": "red"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending trio run after compatibility fixes",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending trio run; prior smoke testing showed nonstandard response shapes",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending trio run; earlier smaller-group testing showed Pass 4 provider 400s",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending trio run",
+          "color": "yellow"
+        }
+      }
+    }
+  ]
+}

@@ -11,10 +11,10 @@
 - `scripts/select_eval_trio.py` creates a fixed small/medium/large trio for empirical cross-model runs
 - `scripts/analyze_model_costs.py` projects sample and full-archive costs across the model catalog and writes reports under `data/reports/`
 - `scripts/run_model_panel.py` runs a fixed chat list across a model panel and emits manual quality/privacy review templates
+- `scripts/render_model_panel_report.py` renders a static HTML review report from the latest model-panel bundle
 - `prompts/` contains the Jinja prompt templates for each extraction pass
 - `schemas/` contains the JSON Schemas that define the extraction contract
 - `config/model_catalog.json` tracks the current model shortlist, pricing, and resolution notes for renamed or missing SKUs
-- `notebooks/model_panel_review.ipynb` is the inspection notebook for cost, quality, and privacy review artifacts
 
 ## Data Directory
 
@@ -55,6 +55,7 @@ All working data for this subproject lives under `retrospect/data/`. It is inten
 
 - `data/reports/`
   Generated cost-analysis markdown reports and other local analysis artifacts.
+  This now includes the static HTML model-panel review report.
 
 ### Extraction Output Layout
 
@@ -115,4 +116,5 @@ From `retrospect/`:
 ./.venv/bin/python scripts/select_eval_trio.py
 ./.venv/bin/python scripts/analyze_model_costs.py
 ./.venv/bin/python scripts/run_model_panel.py --group smaller
+./.venv/bin/python scripts/render_model_panel_report.py
 ```
