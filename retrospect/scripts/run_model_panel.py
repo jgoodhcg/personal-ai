@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +91,18 @@ def parse_args() -> argparse.Namespace:
         help="Retry count forwarded to extract.py for panel runs.",
     )
     parser.add_argument(
+        "--request-concurrency",
+        type=int,
+        default=2,
+        help="Per-model request concurrency forwarded to extract.py.",
+    )
+    parser.add_argument(
+        "--model-concurrency",
+        type=int,
+        default=2,
+        help="How many models to run in parallel.",
+    )
+    parser.add_argument(
         "--reuse-existing",
         action="store_true",
         help="Reuse prior extraction outputs instead of forcing fresh model runs.",
@@ -141,7 +154,7 @@ def build_command(
         "--chat-list-file",
         str(chat_list_path),
         "--concurrency",
-        "1",
+        str(args.request_concurrency),
         "--timeout-seconds",
         str(args.timeout_seconds),
         "--max-retries",
@@ -159,6 +172,7 @@ def build_command(
         command.extend(["--provider-sort", args.provider_sort])
     if args.debug:
         command.append("--debug")
+        command.append("--verbose")
     if args.rerun or not args.reuse_existing:
         command.append("--rerun")
     return command
@@ -214,6 +228,52 @@ def run_streaming(command: list[str], cwd: Path) -> tuple[int, str]:
 
     returncode = process.wait()
     return returncode, "".join(lines)
+
+
+def run_model(
+    args: argparse.Namespace,
+    model: dict[str, Any],
+    *,
+    model_index: int,
+    total_models: int,
+    chat_list_path: Path,
+    logs_dir: Path,
+) -> dict[str, Any]:
+    model_slug = extract.slugify(model["resolved_id"])
+    debug_log_file = logs_dir / f"{model_slug}.log"
+    command = build_command(args, model["resolved_id"], chat_list_path, debug_log_file)
+    model_started_at = extract.iso_now()
+    model_started_clock = time.perf_counter()
+    completed = subprocess.run(
+        command,
+        cwd=RETROSPECT_ROOT,
+        text=True,
+        capture_output=True,
+    )
+    combined_output = completed.stdout or ""
+    if completed.stderr:
+        combined_output = combined_output + completed.stderr
+    debug_log_file.write_text(plain(combined_output), encoding="utf-8")
+    model_completed_at = extract.iso_now()
+    model_duration_seconds = time.perf_counter() - model_started_clock
+    manifest_path = parse_manifest_path(combined_output)
+    return {
+        "model": model["resolved_id"],
+        "group": model["group"],
+        "label": short_model_label(model),
+        "index": model_index,
+        "total_models": total_models,
+        "status": "success" if completed.returncode == 0 else "failed",
+        "manifest_path": manifest_path,
+        "debug_log_file": str(debug_log_file),
+        "started_at": model_started_at,
+        "completed_at": model_completed_at,
+        "duration_seconds": round(model_duration_seconds, 3),
+        "returncode": completed.returncode,
+        "stdout": plain(combined_output),
+        "stderr": None,
+        "command": command,
+    }
 
 
 def write_quality_template(
@@ -335,21 +395,24 @@ def main() -> None:
     total_models = len(models)
     print(
         style(
-            f"== Model Panel :: {total_models} model(s), trio sample ==",
+            (
+                f"== Model Panel :: {total_models} model(s), trio sample, "
+                f"model_concurrency={args.model_concurrency}, "
+                f"request_concurrency={args.request_concurrency} =="
+            ),
             "1;36",
             color_mode=args.color,
         ),
         flush=True,
     )
     for model_index, model in enumerate(models, start=1):
-        model_slug = extract.slugify(model["resolved_id"])
-        debug_log_file = logs_dir / f"{model_slug}.log"
-        command = build_command(args, model["resolved_id"], chat_list_path, debug_log_file)
         banner = (
             f"[{model_index}/{total_models}] "
             f"{short_model_label(model)} "
             f"[{pretty_group(model['group'])}]"
         )
+        model_slug = extract.slugify(model["resolved_id"])
+        debug_log_file = logs_dir / f"{model_slug}.log"
         print(style(f"\n== {banner} ==", "1;35", color_mode=args.color), flush=True)
         print(
             style(
@@ -360,11 +423,16 @@ def main() -> None:
             flush=True,
         )
         if args.debug or args.dry_run:
+            command = build_command(args, model["resolved_id"], chat_list_path, debug_log_file)
             print("$", " ".join(command), flush=True)
         if args.dry_run:
             run_results.append(
                 {
                     "model": model["resolved_id"],
+                    "group": model["group"],
+                    "label": short_model_label(model),
+                    "index": model_index,
+                    "total_models": total_models,
                     "status": "dry_run",
                     "manifest_path": None,
                     "debug_log_file": str(debug_log_file),
@@ -373,38 +441,41 @@ def main() -> None:
                     "returncode": 0,
                 }
             )
-            continue
 
-        model_started_at = extract.iso_now()
-        model_started_clock = time.perf_counter()
-        returncode, combined_output = run_streaming(command, RETROSPECT_ROOT)
-        model_completed_at = extract.iso_now()
-        model_duration_seconds = time.perf_counter() - model_started_clock
-        manifest_path = parse_manifest_path(combined_output)
-        print(
-            style(
-            f"Completed model: {short_model_label(model)} "
-            f"({'ok' if returncode == 0 else 'failed'}) "
-            f"in {model_duration_seconds:.3f}s",
-            "1;32" if returncode == 0 else "1;31",
-            color_mode=args.color,
-            ),
-            flush=True,
-        )
-        run_results.append(
-            {
-                "model": model["resolved_id"],
-                "status": "success" if returncode == 0 else "failed",
-                "manifest_path": manifest_path,
-                "debug_log_file": str(debug_log_file),
-                "started_at": model_started_at,
-                "completed_at": model_completed_at,
-                "duration_seconds": round(model_duration_seconds, 3),
-                "returncode": returncode,
-                "stdout": plain(combined_output),
-                "stderr": None,
+    if not args.dry_run:
+        with ThreadPoolExecutor(max_workers=max(1, args.model_concurrency)) as executor:
+            future_to_model = {
+                executor.submit(
+                    run_model,
+                    args,
+                    model,
+                    model_index=model_index,
+                    total_models=total_models,
+                    chat_list_path=chat_list_path,
+                    logs_dir=logs_dir,
+                ): model
+                for model_index, model in enumerate(models, start=1)
             }
-        )
+            for future in as_completed(future_to_model):
+                result = future.result()
+                status = "ok" if result["returncode"] == 0 else "failed"
+                color = "1;32" if result["returncode"] == 0 else "1;31"
+                print(
+                    style(
+                        (
+                            f"Completed model: {result['label']} "
+                            f"({status}) in {result['duration_seconds']:.3f}s"
+                        ),
+                        color,
+                        color_mode=args.color,
+                    ),
+                    flush=True,
+                )
+                if args.debug and result["stdout"]:
+                    print(result["stdout"], end="" if result["stdout"].endswith("\n") else "\n")
+                run_results.append(result)
+
+    run_results = sorted(run_results, key=lambda item: item.get("index", 0))
 
     bundle_completed_at = extract.iso_now()
     bundle_duration_seconds = time.perf_counter() - bundle_started_clock

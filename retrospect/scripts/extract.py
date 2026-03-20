@@ -114,10 +114,12 @@ class Reporter:
         self,
         *,
         debug: bool,
+        verbose: bool,
         color_mode: str,
         debug_log_file: str | None,
     ) -> None:
         self.debug = debug
+        self.verbose = verbose
         self.color_enabled = self._resolve_color_mode(color_mode)
         self.log_handle = None
         if debug_log_file:
@@ -163,6 +165,8 @@ class Reporter:
         self.emit(f"{self._style(label + ':', '1;34')} {value}")
 
     def task_start(self, task: ExtractionTask) -> None:
+        if not self.verbose:
+            return
         label = short_chat_label(task.chat.path)
         pass_name = PASS_LABELS.get(task.pass_id, task.pass_id)
         self.emit(
@@ -182,13 +186,21 @@ class Reporter:
         }
         symbol, style = status_styles.get(result.status, ("?", "1;37"))
         duration = f"{result.task_duration_seconds:.2f}s"
-        line = (
-            f"{self._style(symbol, style)} "
-            f"{self._style(f'{index:02d}/{total:02d}', '2')} "
-            f"{self._style(pass_name.ljust(8), '1;34')} "
-            f"{label} "
-            f"{self._style(duration, '2')}"
-        )
+        if self.verbose:
+            line = (
+                f"{self._style(symbol, style)} "
+                f"{self._style(f'{index:02d}/{total:02d}', '2')} "
+                f"{self._style(pass_name.ljust(8), '1;34')} "
+                f"{label} "
+                f"{self._style(duration, '2')}"
+            )
+        else:
+            line = (
+                f"{self._style(symbol, style)} "
+                f"{self._style(f'{index:02d}/{total:02d}', '2')} "
+                f"{self._style(pass_name, '1;34')} "
+                f"{self._style(duration, '2')}"
+            )
         self.emit(line)
         if result.error:
             error_text = result.error if self.debug else truncate_text(first_line(result.error), 140)
@@ -351,6 +363,11 @@ def parse_args() -> argparse.Namespace:
         "--debug",
         action="store_true",
         help="Print more detailed errors and preserve verbose run logs.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print per-task start lines and longer progress output.",
     )
     parser.add_argument(
         "--debug-log-file",
@@ -1226,6 +1243,7 @@ async def run() -> int:
     args = parse_args()
     reporter = Reporter(
         debug=args.debug,
+        verbose=args.verbose or args.debug,
         color_mode=args.color,
         debug_log_file=args.debug_log_file,
     )
@@ -1267,12 +1285,18 @@ async def run() -> int:
         headers = build_headers(args) if not args.dry_run else {}
 
         reporter.rule(f"Extract {args.model}")
-        reporter.info("Chats", str(len(chats)))
-        reporter.info("Tasks", str(len(tasks)))
-        reporter.info(
-            "Passes",
-            ", ".join(PASS_LABELS.get(pass_id, pass_id) for pass_id in selected_passes),
-        )
+        if args.verbose or args.debug:
+            reporter.info("Chats", str(len(chats)))
+            reporter.info("Tasks", str(len(tasks)))
+            reporter.info(
+                "Passes",
+                ", ".join(PASS_LABELS.get(pass_id, pass_id) for pass_id in selected_passes),
+            )
+        else:
+            reporter.note(
+                f"{len(chats)} chats, {len(tasks)} tasks, "
+                f"concurrency={args.concurrency}, reasoning={args.reasoning_policy}"
+            )
         if args.dry_run:
             reporter.note("Dry run enabled. No API calls will be made.")
 
