@@ -1,7 +1,7 @@
 {
   "decision": {
     "statement": "Which model should power the retrospect extraction pipeline?",
-    "description": "Scope: four-pass structured extraction over the full normalized chat archive. Criteria include empirical trio execution behavior, projected full-archive cost, quality by pass, routing stability, and privacy posture. This matrix is provisional and should tighten as more trio runs and review scores are added."
+    "description": "Scope: four-pass structured extraction over the full normalized chat archive. Criteria include empirical trio execution behavior, projected full-archive cost, quality by pass, routing stability, and privacy posture. This matrix is provisional and should tighten as more trio runs and review scores are added. Current provisional recommendation: use GPT-5.4 Nano for bulk extraction, then use a stronger model for layered aggregation/synthesis once the corpus is compressed."
   },
   "options": [
     {
@@ -78,36 +78,36 @@
       "name": "Empirical trio execution reliability",
       "cells": {
         "GPT-5.4 Nano": {
-          "text": "12/12 tasks succeeded on the extra-small trio run",
+          "text": "12/12 tasks succeeded on the extra-small trio run (latest run)",
           "color": "green"
         },
         "Gemini 3.1 Flash Lite Preview": {
-          "text": "12/12 tasks succeeded on the extra-small trio run",
-          "color": "green"
+          "text": "11/12 tasks succeeded on the extra-small trio run; one malformed JSON failure",
+          "color": "yellow"
         },
         "GLM 4.5 Air": {
-          "text": "11/12 tasks succeeded; one response-message shape failure",
-          "color": "yellow"
-        },
-        "Claude Haiku 4.5": {
-          "text": "9/12 tasks succeeded; Pass 4 failed on all three chats",
+          "text": "9/12 tasks succeeded; psych-pass formatting drift across all three chats",
           "color": "red"
         },
-        "GPT-5.4 Mini": {
-          "text": "Pending trio run",
+        "Claude Haiku 4.5": {
+          "text": "10/12 tasks succeeded; two psych-pass validation failures",
           "color": "yellow"
         },
+        "GPT-5.4 Mini": {
+          "text": "12/12 tasks succeeded on the smaller trio run",
+          "color": "green"
+        },
         "GLM 4.7 Flash": {
-          "text": "Pending trio run",
+          "text": "11/12 tasks succeeded on the smaller trio run; one summary validation miss before taxonomy expansion",
           "color": "yellow"
         },
         "Gemini 3 Flash Preview": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "12/12 tasks succeeded on the smaller trio run",
+          "color": "green"
         },
         "Claude Sonnet 4.6": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "9/12 tasks succeeded on the smaller trio run; all three failures were on Pass 4 under the earlier stricter contract",
+          "color": "red"
         },
         "GPT-5.4": {
           "text": "Pending trio run",
@@ -151,36 +151,36 @@
       "name": "Empirical trio runtime",
       "cells": {
         "GPT-5.4 Nano": {
-          "text": "60.7s for the 3-chat / 12-task trio run",
+          "text": "44.5s for the 3-chat / 12-task trio run",
           "color": "green"
         },
         "Gemini 3.1 Flash Lite Preview": {
-          "text": "53.3s for the 3-chat / 12-task trio run",
+          "text": "29.1s for the trio run; fastest measured option so far",
           "color": "green"
         },
         "GLM 4.5 Air": {
-          "text": "241.5s for the trio run; much slower than peers",
-          "color": "red"
+          "text": "70.5s for the trio run",
+          "color": "yellow"
         },
         "Claude Haiku 4.5": {
-          "text": "127.9s for the trio run",
+          "text": "92.5s for the trio run",
           "color": "yellow"
         },
         "GPT-5.4 Mini": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "59.8s for the smaller trio run",
+          "color": "green"
         },
         "GLM 4.7 Flash": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "249.8s for the smaller trio run; clear runtime outlier",
+          "color": "red"
         },
         "Gemini 3 Flash Preview": {
-          "text": "Pending trio run",
+          "text": "89.8s for the smaller trio run",
           "color": "yellow"
         },
         "Claude Sonnet 4.6": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "141.4s for the smaller trio run",
+          "color": "red"
         },
         "GPT-5.4": {
           "text": "Pending trio run",
@@ -224,36 +224,36 @@
       "name": "Empirical trio sample cost",
       "cells": {
         "GPT-5.4 Nano": {
-          "text": "$0.023457 for the trio sample",
+          "text": "$0.018041 for the trio sample",
           "color": "green"
         },
         "Gemini 3.1 Flash Lite Preview": {
-          "text": "$0.027197 for the trio sample",
+          "text": "$0.022756 for the trio sample",
           "color": "green"
         },
         "GLM 4.5 Air": {
-          "text": "$0.030033 for the trio sample",
-          "color": "yellow"
+          "text": "$0.014022 for the trio sample",
+          "color": "green"
         },
         "Claude Haiku 4.5": {
-          "text": "$0.084149 for the trio sample",
+          "text": "$0.094203 for the trio sample",
           "color": "red"
         },
         "GPT-5.4 Mini": {
-          "text": "Pending trio run",
+          "text": "$0.084984 for the smaller trio sample",
           "color": "yellow"
         },
         "GLM 4.7 Flash": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "$0.006734 for the smaller trio sample; cheapest measured option so far",
+          "color": "green"
         },
         "Gemini 3 Flash Preview": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "$0.053242 for the smaller trio sample",
+          "color": "green"
         },
         "Claude Sonnet 4.6": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "$0.244464 for the smaller trio sample",
+          "color": "red"
         },
         "GPT-5.4": {
           "text": "Pending trio run",
@@ -370,35 +370,35 @@
       "name": "Pass quality review",
       "cells": {
         "GPT-5.4 Nano": {
-          "text": "Pending manual rubric fill for Passes 1-4",
+          "text": "Manual rubric still pending, but operationally clean on latest extra-small run",
           "color": "yellow"
         },
         "Gemini 3.1 Flash Lite Preview": {
-          "text": "Pending manual rubric fill for Passes 1-4",
+          "text": "Manual rubric pending; one malformed JSON failure on latest extra-small run",
           "color": "yellow"
         },
         "GLM 4.5 Air": {
-          "text": "Pending manual rubric fill for Passes 1-4",
+          "text": "Manual rubric pending; psych output still drifts structurally",
           "color": "yellow"
         },
         "Claude Haiku 4.5": {
-          "text": "Pending manual rubric fill for Passes 1-4",
+          "text": "Manual rubric pending; psych output closer but still inconsistent",
           "color": "yellow"
         },
         "GPT-5.4 Mini": {
-          "text": "Pending trio run and rubric fill",
+          "text": "Manual rubric pending; operationally clean on smaller run",
           "color": "yellow"
         },
         "GLM 4.7 Flash": {
-          "text": "Pending trio run and rubric fill",
+          "text": "Manual rubric pending; last failure was taxonomy compliance rather than total incompatibility",
           "color": "yellow"
         },
         "Gemini 3 Flash Preview": {
-          "text": "Pending trio run and rubric fill",
+          "text": "Manual rubric pending; operationally clean on smaller run",
           "color": "yellow"
         },
         "Claude Sonnet 4.6": {
-          "text": "Pending trio run and rubric fill",
+          "text": "Manual rubric pending; needs rerun after psych-pass contract softening",
           "color": "yellow"
         },
         "GPT-5.4": {
@@ -516,35 +516,35 @@
       "name": "Routing and structured-output confidence",
       "cells": {
         "GPT-5.4 Nano": {
-          "text": "Strong current signal: 12/12 succeeded with strict JSON-schema extraction",
+          "text": "Strong current signal: 12/12 succeeded on latest extra-small run with stable output handling",
           "color": "green"
         },
         "Gemini 3.1 Flash Lite Preview": {
-          "text": "Strong current signal: 12/12 succeeded with strict JSON-schema extraction",
-          "color": "green"
+          "text": "Good routing signal, but latest extra-small run had one malformed JSON response",
+          "color": "yellow"
         },
         "GLM 4.5 Air": {
-          "text": "One message-shape failure and very slow runtime on the trio run",
+          "text": "Reasoning suppression fixed the worst shape issues, but psych formatting still drifts",
           "color": "red"
         },
         "Claude Haiku 4.5": {
-          "text": "Pass 4 returned provider 400 errors across all three chats",
-          "color": "red"
-        },
-        "GPT-5.4 Mini": {
-          "text": "Pending trio run after compatibility fixes",
+          "text": "Improved after the softer psych contract, but still returns field-shape mismatches",
           "color": "yellow"
         },
+        "GPT-5.4 Mini": {
+          "text": "Strong current signal: 12/12 succeeded on the smaller run",
+          "color": "green"
+        },
         "GLM 4.7 Flash": {
-          "text": "Pending trio run; prior smoke testing showed nonstandard response shapes",
+          "text": "Reasoning suppression made it usable; still slow and needs one rerun under the broadened taxonomy",
           "color": "yellow"
         },
         "Gemini 3 Flash Preview": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "Strong current signal: 12/12 succeeded on the smaller run",
+          "color": "green"
         },
         "Claude Sonnet 4.6": {
-          "text": "Pending trio run; earlier smaller-group testing showed Pass 4 provider 400s",
+          "text": "Earlier smaller run failed only on Pass 4; rerun under the softer psych contract is still needed",
           "color": "yellow"
         },
         "GPT-5.4": {

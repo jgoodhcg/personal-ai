@@ -1,9 +1,9 @@
 ---
 title: "Chat Archive Processing"
-status: ready
+status: active
 description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, narrative potential, and RAG knowledge base"
 created: 2026-03-06
-updated: 2026-03-10
+updated: 2026-03-20
 subproject: retrospect
 tags: [knowledge-base, rag, chat-exports, self-discovery, psychology, narrative, creative]
 priority: high
@@ -93,9 +93,9 @@ Each conversation is processed through **four focused extraction passes** via Op
 
 ### Output Format
 
-**JSON** with strict schema validation. No human reads intermediates, so optimize for:
+**JSON** with local schema validation. Provider-enforced strict schemas should be used opportunistically where they improve compliance, but the pipeline should prefer portability and successful extraction over brittle provider-specific strictness. No human reads intermediates, so optimize for:
 - Programmatic aggregation
-- Schema-constrained structured output (better model performance)
+- Structured outputs with tolerant coercion / repair where needed
 - Easy validation
 
 ### Derived Analysis (Cross-Conversation)
@@ -137,11 +137,12 @@ No trait-level or framework-level claim should be synthesized unless it shows up
 
 3. **Prompts** — DONE. Jinja2 prompt templates for all four passes in `retrospect/prompts/`. Each has system and user blocks with field-level instructions aligned to schemas.
 
-4. **Extract** — Four-pass extraction per conversation via OpenRouter. Outputs to `retrospect/data/extractions/` as JSON.
+4. **Extract** — Structured extraction via OpenRouter. Near-term operating plan is to run Passes 1-3 cheaply across the entire archive first, then handle higher-level psych synthesis after aggregation and compression. Outputs to `retrospect/data/extractions/` as JSON.
 
 5. **Aggregate** — Combine extractions into frequency-counted lists and pattern summaries in `retrospect/data/aggregated/`.
 
 6. **Infer** — Cross-conversation derived analysis for personality frameworks and psychological patterns.
+   - This layer may absorb much of the current Pass 4 burden if raw-chat psych extraction remains brittle or low value at archive scale.
 
 7. **Synthesize** — Generate two classes of documents:
    - **Assistant-context / RAG-safe docs** in `retrospect/data/knowledge_base/assistant_context/`:
@@ -153,9 +154,13 @@ No trait-level or framework-level claim should be synthesized unless it shows up
      - `media_and_influences.md` — cultural references and tastes
    - **Interpretive analysis docs** in `retrospect/data/knowledge_base/analysis/`:
      - `ideas_gallery.md` — full catalog with patterns
-     - `psychological_profile.md` — evidence-based personality analysis with explicit confidence and disconfirming evidence
+    - `psychological_profile.md` — evidence-based personality analysis with explicit confidence and disconfirming evidence
      - `relationship_map.md` — people and social patterns
-     - `narrative_potential.md` — recurring tensions, fascinations, and thematic threads with storytelling potential
+    - `narrative_potential.md` — recurring tensions, fascinations, and thematic threads with storytelling potential
+   - Add a layered plain-text synthesis path:
+     - summarize structured outputs into chunked evidence digests
+     - summarize those digests into higher-level dossiers
+     - hand the final compressed dossier to a stronger model for reflective synthesis
 
 8. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
 
@@ -178,13 +183,14 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 
 - 3,231 conversations × 4 passes = 12,924 API calls
 - Estimate per call varies by model choice and prompt length
-- Target: under $20 total for all extraction phases
-- Monitor costs during initial 100-chat sample run
+- Current working assumption: full four-pass extraction with the cleanest hosted models will likely exceed the original `$20` target
+- Current operating plan should reduce cost by running Passes 1-3 cheaply across all chats first, then doing layered synthesis on compressed artifacts
+- Monitor costs during the initial full Pass 1-3 execution
 
 ## Validation
 
 - [x] Extraction schema defined and validated
-- [ ] Sample run of 100 conversations produces valid JSON
+- [x] Smoke tests and trio panel runs produce valid outputs for at least one clean baseline model
 - [ ] Each pass extracts target fields correctly
 - [ ] Evidence is verbatim or turn-referenced and confidence is calibrated
 - [ ] Negative-space reporting is populated for low-signal conversations
@@ -194,6 +200,15 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - [ ] Synthesized docs are factual and cited
 - [ ] Human review completed before any upload
 - [ ] Documents searchable in Open WebUI RAG
+
+## Current Operating Decision
+
+- **Bulk extraction model:** `openai/gpt-5.4-nano`
+- **Bulk extraction scope:** run **Passes 1-3** across all chats first
+- **Psych/introspection path:** treat deeper psych insight as an aggregation and synthesis problem unless a later Pass 4 path proves clearly valuable and operationally stable
+- **Likely stronger synthesis candidates:** `openai/gpt-5.4-mini` and `google/gemini-3-flash-preview`
+
+This reflects the current empirical tradeoff: `gpt-5.4-nano` is the best blend of cost, runtime, and output correctness so far, while stronger hosted models can be reserved for smaller, compressed downstream contexts.
 
 ## Scope
 
@@ -238,24 +253,24 @@ The primary product is not "a personality type." The primary product is a high-t
 
 1. ~~Define JSON schema for each extraction pass~~ — DONE
 2. ~~Build extraction prompts for each pass~~ — DONE
-3. Build extraction runner script (`retrospect/scripts/extract.py`)
-   - Multi-model support (pass model as CLI arg)
-   - Resumability (skip conversations with existing output for a given pass+model)
-   - Re-run support (encode model and timestamp in output filename/metadata)
-   - `--limit N` flag for sample runs
-   - `--dry-run` for cost projection
-   - Concurrency via asyncio/aiohttp
-   - Flatten `$ref` schemas for OpenRouter strict `json_schema` mode
-   - Cost tracking per run
-4. Smoke test: 5 conversations x 4 passes, validate all outputs
-5. Model comparison: 100-chat sample across candidate models
-   - Candidates: `google/gemini-2.0-flash-lite-001`, `google/gemini-2.0-flash-001`, `openai/gpt-4o-mini`
-   - Compare: validity rate, cost, field completeness, evidence quality, false-positive rate in interpretive passes
-   - Record decision in `.decisions/retrospect-extraction-model-selection.json`
-6. Execute full extraction with chosen model(s)
+3. ~~Build extraction runner script (`retrospect/scripts/extract.py`)~~ — DONE
+4. ~~Smoke test extraction and model-panel harness~~ — DONE
+5. ~~Run initial trio comparison across extra-small and smaller candidates~~ — DONE
+6. Execute full **Pass 1-3** extraction with `openai/gpt-5.4-nano`
+   - keep manifests and cost tracking
+   - record any systematic schema drift for later coercion rules
 7. Build aggregation script (`retrospect/scripts/aggregate.py`)
-   - Add recurrence counts, temporal spread, and cross-context consistency scoring
-8. Build inference script (`retrospect/scripts/infer.py`)
-   - Require disconfirming evidence and time-sliced checks for elevated claims
-9. Build synthesis script (`retrospect/scripts/synthesize.py`)
-   - Split assistant-context outputs from interpretive-analysis outputs
+   - deduplicate entities
+   - add recurrence counts, temporal spread, and cross-context consistency scoring
+   - produce compression-ready evidence digests
+8. Build layered synthesis pipeline
+   - plain-text summaries over aggregated evidence
+   - recursive compression until one-context-window dossiers exist
+   - final reflective synthesis with a stronger model
+9. Reassess Pass 4
+   - either rerun it selectively on high-signal subsets
+   - or replace most of its value with aggregation-time and synthesis-time psychological analysis
+10. Build inference script (`retrospect/scripts/infer.py`)
+    - require disconfirming evidence and time-sliced checks for elevated claims
+11. Build synthesis script (`retrospect/scripts/synthesize.py`)
+    - split assistant-context outputs from interpretive-analysis outputs
