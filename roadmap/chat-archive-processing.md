@@ -185,6 +185,7 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - Estimate per call varies by model choice and prompt length
 - Current working assumption: full four-pass extraction with the cleanest hosted models will likely exceed the original `$20` target
 - Current operating plan should reduce cost by running Passes 1-3 cheaply across all chats first, then doing layered synthesis on compressed artifacts
+- Latest empirical signal: `openai/gpt-5.4-nano` completed a 25-chat random sample for Passes 1-3 with `75/75` successes in `87.9s` for `$0.097108`, projecting to about **`$12.55`** and about **`3.16 hours`** for the full archive at similar settings
 - Monitor costs during the initial full Pass 1-3 execution
 
 ## Validation
@@ -209,6 +210,8 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - **Likely stronger synthesis candidates:** `openai/gpt-5.4-mini` and `google/gemini-3-flash-preview`
 
 This reflects the current empirical tradeoff: `gpt-5.4-nano` is the best blend of cost, runtime, and output correctness so far, while stronger hosted models can be reserved for smaller, compressed downstream contexts.
+
+The current empirical evidence is now strong enough to justify starting the full Pass 1-3 run rather than waiting for more model-comparison work.
 
 ## Scope
 

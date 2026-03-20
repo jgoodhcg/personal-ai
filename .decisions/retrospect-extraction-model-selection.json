@@ -294,6 +294,79 @@
       }
     },
     {
+      "name": "Empirical Pass 1-3 archive-sample viability",
+      "cells": {
+        "GPT-5.4 Nano": {
+          "text": "25-chat random sample for Passes 1-3 succeeded 75/75; 87.9s total; $0.097108 sample cost; projects to about $12.55 and about 3.16 hours for all 3,231 chats",
+          "color": "green"
+        },
+        "Gemini 3.1 Flash Lite Preview": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GLM 4.5 Air": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Claude Haiku 4.5": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GPT-5.4 Mini": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GLM 4.7 Flash": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Gemini 3 Flash Preview": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Claude Sonnet 4.6": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GPT-5.4": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Gemini 3.1 Pro Preview": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GLM 5": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Claude Opus 4.6": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Mercury 2": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "GLM 5 Turbo": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Mistral Large 3 2512": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "Qwen3.5 397B A17B": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        },
+        "MiniMax M2.5": {
+          "text": "Pending larger Pass 1-3 sample run",
+          "color": "yellow"
+        }
+      }
+    },
+    {
       "name": "Heuristic full-archive cost",
       "cells": {
         "GPT-5.4 Nano": {

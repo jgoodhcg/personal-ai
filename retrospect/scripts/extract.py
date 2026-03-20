@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -107,6 +107,24 @@ class RunState:
 
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+SPINNER_FRAMES = ("|", "/", "-", "\\")
+
+
+@dataclass
+class LiveTaskInfo:
+    pass_name: str
+    label: str
+    started_clock: float
+
+
+@dataclass
+class DashboardState:
+    total_tasks: int
+    completed_tasks: int = 0
+    status_counts: dict[str, int] = field(default_factory=dict)
+    active_tasks: dict[str, LiveTaskInfo] = field(default_factory=dict)
+    last_error: str | None = None
+    last_update_clock: float = field(default_factory=time.perf_counter)
 
 
 class Reporter:
@@ -220,6 +238,98 @@ def short_chat_label(path: Path) -> str:
     parts = stem.split("_", 3)
     label = parts[3] if len(parts) >= 4 else stem
     return truncate_text(label.replace("-", " "), 56)
+
+
+def should_use_tui(args: argparse.Namespace) -> bool:
+    if args.display == "tui":
+        return True
+    if args.display == "plain":
+        return False
+    return sys.stdout.isatty() and not args.debug and not args.dry_run
+
+
+def task_key(task: ExtractionTask) -> str:
+    return f"{task.pass_id}:{task.chat.path.name}"
+
+
+def format_seconds(value: float | None) -> str:
+    if value is None:
+        return "0.0s"
+    if value < 60:
+        return f"{value:.1f}s"
+    minutes, seconds = divmod(value, 60)
+    return f"{int(minutes)}m {seconds:04.1f}s"
+
+
+def progress_bar(completed: int, total: int, width: int = 18) -> str:
+    if total <= 0:
+        total = 1
+    filled = round((completed / total) * width)
+    return "█" * filled + "·" * (width - filled)
+
+
+def dashboard_task_started(state: DashboardState, task: ExtractionTask) -> None:
+    state.active_tasks[task_key(task)] = LiveTaskInfo(
+        pass_name=PASS_LABELS.get(task.pass_id, task.pass_id),
+        label=short_chat_label(task.chat.path),
+        started_clock=time.perf_counter(),
+    )
+    state.last_update_clock = time.perf_counter()
+
+
+def dashboard_task_finished(state: DashboardState, result: TaskResult) -> None:
+    state.completed_tasks += 1
+    state.status_counts[result.status] = state.status_counts.get(result.status, 0) + 1
+    state.active_tasks.pop(task_key(result.task), None)
+    state.last_update_clock = time.perf_counter()
+    if result.error:
+        state.last_error = truncate_text(first_line(result.error), 180)
+
+
+def render_extract_dashboard(
+    args: argparse.Namespace,
+    state: DashboardState,
+    *,
+    model: str,
+    started_clock: float,
+    final: bool = False,
+) -> str:
+    elapsed = time.perf_counter() - started_clock
+    spinner = "done" if final else SPINNER_FRAMES[int(elapsed * 8) % len(SPINNER_FRAMES)]
+    lines = [
+        f"{spinner} Extract {model}  {state.completed_tasks}/{state.total_tasks} tasks  "
+        f"elapsed {format_seconds(elapsed)}  concurrency={args.concurrency}"
+    ]
+
+    success = state.status_counts.get("success", 0)
+    failed = state.status_counts.get("failed", 0)
+    skipped = state.status_counts.get("skipped", 0) + state.status_counts.get("dry_run", 0)
+    lines.append(
+        f"{progress_bar(state.completed_tasks, state.total_tasks)}  "
+        f"ok={success} failed={failed} skipped={skipped} active={len(state.active_tasks)}"
+    )
+
+    active_tasks = sorted(state.active_tasks.values(), key=lambda item: item.started_clock)
+    if active_tasks:
+        for task in active_tasks[: max(1, min(args.concurrency, 4))]:
+            task_elapsed = time.perf_counter() - task.started_clock
+            warning = ""
+            if task_elapsed >= args.timeout_seconds:
+                warning = " timeout?"
+            elif task_elapsed >= max(30, args.timeout_seconds * 0.5):
+                warning = " slow"
+            lines.append(
+                f" • {task.pass_name:<8} {task.label}  {format_seconds(task_elapsed)}{warning}"
+            )
+    else:
+        lines.append(" idle")
+
+    idle_age = time.perf_counter() - state.last_update_clock
+    if not final and idle_age >= 20:
+        lines.append(f" no extractor update for {format_seconds(idle_age)}")
+    if state.last_error:
+        lines.append(f" last error: {state.last_error}")
+    return "\n".join(lines)
 
 
 def utc_now() -> datetime:
@@ -378,6 +488,12 @@ def parse_args() -> argparse.Namespace:
         choices=["auto", "always", "never"],
         default="auto",
         help="Colorize console output. Use 'always' when output is piped through another process.",
+    )
+    parser.add_argument(
+        "--display",
+        choices=["auto", "tui", "plain"],
+        default="auto",
+        help="How to render extraction progress. 'tui' shows a live dashboard, 'plain' prints line-by-line progress.",
     )
     parser.add_argument(
         "--provider-data-collection",
@@ -944,6 +1060,7 @@ async def execute_task(
     source_schemas: dict[str, dict[str, Any]],
     run_state: RunState,
     reporter: Reporter,
+    dashboard_state: DashboardState | None,
 ) -> TaskResult:
     system_prompt, user_prompt = render_prompt(task.pass_id, task.chat)
     estimated_prompt_tokens = estimate_tokens(system_prompt) + estimate_tokens(user_prompt)
@@ -999,6 +1116,8 @@ async def execute_task(
                 completion_tokens_estimate=estimated_completion_tokens,
             )
 
+        if dashboard_state is not None:
+            dashboard_task_started(dashboard_state, task)
         reporter.task_start(task)
         try:
             response_json = await asyncio.to_thread(request_completion, args, headers, payload)
@@ -1251,6 +1370,7 @@ async def run() -> int:
     try:
         selected_passes = args.pass_ids or list(validate_extraction.PASS_SCHEMAS.keys())
         args.pass_ids = selected_passes
+        tui_enabled = should_use_tui(args)
 
         if not args.dry_run and not os.getenv("OPENROUTER_API_KEY"):
             print(
@@ -1284,26 +1404,28 @@ async def run() -> int:
         }
         headers = build_headers(args) if not args.dry_run else {}
 
-        reporter.rule(f"Extract {args.model}")
-        if args.verbose or args.debug:
-            reporter.info("Chats", str(len(chats)))
-            reporter.info("Tasks", str(len(tasks)))
-            reporter.info(
-                "Passes",
-                ", ".join(PASS_LABELS.get(pass_id, pass_id) for pass_id in selected_passes),
-            )
-        else:
-            reporter.note(
-                f"{len(chats)} chats, {len(tasks)} tasks, "
-                f"concurrency={args.concurrency}, reasoning={args.reasoning_policy}"
-            )
-        if args.dry_run:
-            reporter.note("Dry run enabled. No API calls will be made.")
+        if not tui_enabled:
+            reporter.rule(f"Extract {args.model}")
+            if args.verbose or args.debug:
+                reporter.info("Chats", str(len(chats)))
+                reporter.info("Tasks", str(len(tasks)))
+                reporter.info(
+                    "Passes",
+                    ", ".join(PASS_LABELS.get(pass_id, pass_id) for pass_id in selected_passes),
+                )
+            else:
+                reporter.note(
+                    f"{len(chats)} chats, {len(tasks)} tasks, "
+                    f"concurrency={args.concurrency}, reasoning={args.reasoning_policy}"
+                )
+            if args.dry_run:
+                reporter.note("Dry run enabled. No API calls will be made.")
 
         started_at = iso_now()
         started_clock = time.perf_counter()
         semaphore = asyncio.Semaphore(max(1, args.concurrency))
         run_state = RunState()
+        dashboard_state = DashboardState(total_tasks=len(tasks)) if tui_enabled else None
         coroutines = [
             execute_task(
                 args,
@@ -1317,15 +1439,48 @@ async def run() -> int:
                 source_schemas=source_schemas,
                 run_state=run_state,
                 reporter=reporter,
+                dashboard_state=dashboard_state,
             )
             for task in tasks
         ]
 
         results: list[TaskResult] = []
-        for index, future in enumerate(asyncio.as_completed(coroutines), start=1):
-            result = await future
-            results.append(result)
-            reporter.task_result(index, len(tasks), result)
+        if tui_enabled:
+            pending = {asyncio.create_task(coroutine) for coroutine in coroutines}
+            rendered = False
+
+            def print_board(final: bool = False) -> None:
+                nonlocal rendered
+                board = render_extract_dashboard(
+                    args,
+                    dashboard_state,
+                    model=args.model,
+                    started_clock=started_clock,
+                    final=final,
+                )
+                if rendered:
+                    sys.stdout.write("\x1b[H\x1b[J")
+                rendered = True
+                sys.stdout.write(board + "\n")
+                sys.stdout.flush()
+
+            while pending:
+                done, pending = await asyncio.wait(
+                    pending,
+                    timeout=0.12,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                for future in done:
+                    result = await future
+                    results.append(result)
+                    dashboard_task_finished(dashboard_state, result)
+                print_board()
+            print_board(final=True)
+        else:
+            for index, future in enumerate(asyncio.as_completed(coroutines), start=1):
+                result = await future
+                results.append(result)
+                reporter.task_result(index, len(tasks), result)
 
         completed_at = iso_now()
         duration_seconds = time.perf_counter() - started_clock

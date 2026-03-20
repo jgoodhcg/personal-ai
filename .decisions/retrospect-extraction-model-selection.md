@@ -11,6 +11,13 @@ Proceed with a **two-tier approach**:
 
 This is a provisional decision, but it is strong enough to move the project forward now.
 
+The strongest new evidence is a **25-chat random sample run for Passes 1-3 with `GPT-5.4 Nano`**:
+
+- `75/75` tasks succeeded
+- `87.9s` total runtime
+- `$0.097108` sample cost
+- rough projection: about **`$12.55`** and about **`3.16 hours`** for all `3,231` chats on Passes 1-3
+
 ## Why
 
 The current empirical runs show:
