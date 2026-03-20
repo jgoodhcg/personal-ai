@@ -63,7 +63,30 @@
           },
           "category": {
             "type": "string",
-            "enum": ["book", "film", "tv_show", "game", "music", "podcast", "creator", "thinker", "article", "other"],
+            "enum": [
+              "book",
+              "article",
+              "essay",
+              "paper",
+              "newsletter",
+              "blog_post",
+              "website",
+              "social_post",
+              "film",
+              "documentary",
+              "tv_show",
+              "video",
+              "youtube_video",
+              "talk",
+              "course",
+              "game",
+              "music",
+              "podcast",
+              "creator",
+              "thinker",
+              "app",
+              "other"
+            ],
             "description": "Type of media or influence."
           },
           "relationship": {
@@ -79,7 +102,7 @@
         "required": ["title", "category", "relationship"],
         "additionalProperties": false
       },
-      "description": "Books, films, games, music, podcasts, creators, thinkers referenced."
+      "description": "Media, creators, platforms, and intellectual influences referenced."
     },
     "technical_stack_and_skills": {
       "type": "array",

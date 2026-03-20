@@ -379,6 +379,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional provider sort preference for OpenRouter routing.",
     )
+    parser.add_argument(
+        "--reasoning-policy",
+        choices=["disable", "exclude", "allow"],
+        default="disable",
+        help=(
+            "How to handle model reasoning output. "
+            "'disable' sends enabled=false and exclude=true, "
+            "'exclude' sends exclude=true only, "
+            "'allow' omits the reasoning directive."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -784,15 +795,22 @@ def build_payload(
             {"role": "user", "content": user_prompt},
         ],
         "provider": provider_preferences,
-        "response_format": {
+    }
+    if pass_id == "pass4_psych":
+        payload["response_format"] = {"type": "json_object"}
+    else:
+        payload["response_format"] = {
             "type": "json_schema",
             "json_schema": {
                 "name": pass_id,
                 "strict": True,
                 "schema": schema,
             },
-        },
-    }
+        }
+    if args.reasoning_policy == "disable":
+        payload["reasoning"] = {"enabled": False, "exclude": True}
+    elif args.reasoning_policy == "exclude":
+        payload["reasoning"] = {"exclude": True}
     if args.temperature is not None:
         payload["temperature"] = args.temperature
     if args.response_healing:
@@ -1153,6 +1171,7 @@ def build_manifest(
             "data_collection": args.provider_data_collection,
             "zdr_only": args.zdr_only,
             "sort": args.provider_sort,
+            "reasoning_policy": args.reasoning_policy,
         },
         "chat_count": len({task.chat.path for task in tasks}),
         "task_count": len(tasks),

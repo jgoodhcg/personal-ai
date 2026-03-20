@@ -26,6 +26,7 @@ DECISION_PATH = DECISIONS_DIR / "retrospect-extraction-model-selection.json"
 TRIO_PATH = DATA_DIR / "samples" / "model-eval-trio.json"
 SAMPLE_MANIFEST_PATH = DATA_DIR / "samples" / "model-cost-minimal-sample.json"
 MANIFEST_RE = re.compile(r"Manifest:\s+(.*)")
+TASK_RE = re.compile(r"^[✓✗↷·] \d+/\d+ (\w+)\s+(.*?)\s+([0-9]+\.[0-9]+)s$")
 GROUP_ORDER = ("extra_small", "smaller", "flagship", "wildcard")
 
 
@@ -72,6 +73,13 @@ def pretty_group(group: str) -> str:
     return group.replace("_", " ")
 
 
+def short_chat_label(relative_path: str) -> str:
+    stem = Path(relative_path).stem
+    parts = stem.split("_", 3)
+    label = parts[3] if len(parts) >= 4 else stem
+    return label.replace("-", " ")
+
+
 def money(value: float | None, digits: int = 2) -> str:
     if value is None:
         return "n/a"
@@ -110,6 +118,95 @@ def collect_summary_rows(
         rows.append(row)
     rows.sort(key=lambda item: (GROUP_ORDER.index(item["group"]), item["runtime_seconds"]))
     return rows
+
+
+def parse_task_events(stdout: str) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    pending_index: int | None = None
+    previous_elapsed = 0.0
+    symbol_to_status = {
+        "✓": "success",
+        "✗": "failed",
+        "↷": "skipped",
+        "·": "dry_run",
+    }
+    for raw_line in stdout.splitlines():
+        line = raw_line.rstrip()
+        if pending_index is not None and line.startswith("  "):
+            events[pending_index]["error"] = line.strip()
+            pending_index = None
+            continue
+        if not line:
+            continue
+        symbol = line[0]
+        status = symbol_to_status.get(symbol)
+        if not status:
+            pending_index = None
+            continue
+        match = TASK_RE.match(line)
+        if not match:
+            pending_index = None
+            continue
+        elapsed_seconds = float(match.group(3))
+        event = {
+            "status": status,
+            "pass_label": match.group(1),
+            "chat_short_label": match.group(2).strip(),
+            "elapsed_seconds": elapsed_seconds,
+            "task_duration_seconds": max(0.0, elapsed_seconds - previous_elapsed),
+            "error": None,
+        }
+        events.append(event)
+        previous_elapsed = elapsed_seconds
+        pending_index = len(events) - 1 if status == "failed" else None
+    return events
+
+
+def collect_chat_breakdown(
+    bundle_manifest: dict[str, Any],
+    trio_manifest: dict[str, Any],
+    catalog_by_model: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    trio_items = []
+    trio_by_short_label: dict[str, dict[str, Any]] = {}
+    for item in trio_manifest["selected_chats"]:
+        enriched = dict(item)
+        enriched["short_label"] = short_chat_label(item["relative_path"])
+        trio_items.append(enriched)
+        trio_by_short_label[enriched["short_label"]] = enriched
+
+    per_chat: dict[str, list[dict[str, Any]]] = {item["label"]: [] for item in trio_items}
+    for result in bundle_manifest["run_results"]:
+        events = parse_task_events(result.get("stdout") or "")
+        model_meta = catalog_by_model[result["model"]]
+        bucket: dict[str, list[dict[str, Any]]] = {}
+        for event in events:
+            bucket.setdefault(event["chat_short_label"], []).append(event)
+        for short_label, chat_events in bucket.items():
+            trio_item = trio_by_short_label.get(short_label)
+            if not trio_item:
+                continue
+            failures = [event for event in chat_events if event["status"] == "failed"]
+            per_chat[trio_item["label"]].append(
+                {
+                    "group": model_meta["group"],
+                    "label": model_meta["label"],
+                    "model": result["model"],
+                    "success_count": sum(1 for event in chat_events if event["status"] == "success"),
+                    "failure_count": len(failures),
+                    "task_count": len(chat_events),
+                    "runtime_seconds": sum(event["task_duration_seconds"] for event in chat_events),
+                    "failed_passes": ", ".join(event["pass_label"] for event in failures) or "none",
+                    "error_preview": failures[0]["error"] if failures else "",
+                }
+            )
+
+    breakdown = []
+    for item in trio_items:
+        rows = per_chat[item["label"]]
+        rows.sort(key=lambda row: (GROUP_ORDER.index(row["group"]), row["runtime_seconds"]))
+        breakdown.append({"chat": item, "rows": rows})
+    return breakdown
 
 
 def collect_projection_rows(summary_rows: list[dict[str, Any]], catalog: dict[str, Any]) -> list[dict[str, Any]]:
@@ -176,6 +273,58 @@ def collect_completion_counts(
     return quality_completed, privacy_completed
 
 
+def collect_quality_summary(quality_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    metrics = [
+        "factual_accuracy",
+        "evidence_quality",
+        "false_positive_risk",
+        "completeness",
+        "synthesis_utility",
+    ]
+    per_model: dict[str, dict[str, Any]] = {}
+    for row in quality_rows:
+        model = row["model"]
+        parsed_values: dict[str, float] = {}
+        found_any = False
+        for metric in metrics:
+            value = (row.get(metric) or "").strip()
+            if not value:
+                continue
+            try:
+                numeric = float(value)
+            except ValueError:
+                continue
+            parsed_values[metric] = numeric
+            found_any = True
+        if not found_any:
+            continue
+        bucket = per_model.setdefault(
+            model,
+            {"count": 0, "sums": {metric: 0.0 for metric in metrics}, "filled": {metric: 0 for metric in metrics}},
+        )
+        for metric, numeric in parsed_values.items():
+            bucket["sums"][metric] += numeric
+            bucket["filled"][metric] += 1
+        bucket["count"] += 1
+
+    rows = []
+    for model, data in per_model.items():
+        averages = {}
+        for metric in metrics:
+            filled = data["filled"][metric]
+            averages[metric] = (data["sums"][metric] / filled) if filled else None
+        valid_avgs = [value for value in averages.values() if value is not None]
+        overall = sum(valid_avgs) / len(valid_avgs) if valid_avgs else None
+        rows.append(
+            {
+                "model": model,
+                "overall": overall,
+                **averages,
+            }
+        )
+    return rows
+
+
 def status_chip(text: str, tone: str) -> str:
     return f'<span class="chip chip-{tone}">{html.escape(text)}</span>'
 
@@ -210,20 +359,6 @@ def render_summary_cards(
         for label, value in cards
     )
 
-
-def render_trio(trio_manifest: dict[str, Any]) -> str:
-    items = []
-    for item in trio_manifest["selected_chats"]:
-        items.append(
-            "<li>"
-            f"<strong>{html.escape(item['label'])}</strong> "
-            f"<span>{html.escape(item['title'])}</span> "
-            f"<code>{html.escape(item['relative_path'])}</code>"
-            "</li>"
-        )
-    return "<ul class=\"trio-list\">" + "".join(items) + "</ul>"
-
-
 def render_summary_table(rows: list[dict[str, Any]]) -> str:
     body = []
     for row in rows:
@@ -249,12 +384,23 @@ def render_summary_table(rows: list[dict[str, Any]]) -> str:
     )
 
 
-def render_bar_chart(rows: list[dict[str, Any]], value_key: str, title: str, value_fmt: str) -> str:
-    max_value = max((float(row.get(value_key) or 0.0) for row in rows), default=0.0) or 1.0
+def render_bar_chart(
+    rows: list[dict[str, Any]],
+    value_key: str,
+    title: str,
+    value_fmt: str,
+    *,
+    max_value: float | None = None,
+) -> str:
+    resolved_max = max_value if max_value is not None else max(
+        (float(row.get(value_key) or 0.0) for row in rows),
+        default=0.0,
+    )
+    resolved_max = resolved_max or 1.0
     bars = []
     for row in rows:
         value = float(row.get(value_key) or 0.0)
-        width = (value / max_value) * 100
+        width = (value / resolved_max) * 100
         bars.append(
             "<div class=\"bar-row\">"
             f"<div class=\"bar-label\">{html.escape(row['label'])}</div>"
@@ -263,6 +409,74 @@ def render_bar_chart(rows: list[dict[str, Any]], value_key: str, title: str, val
             "</div>"
         )
     return f"<section><h3>{html.escape(title)}</h3>{''.join(bars)}</section>"
+
+
+def render_grouped_bar_sections(
+    rows: list[dict[str, Any]],
+    *,
+    title: str,
+    value_key: str,
+    value_fmt: str,
+    description: str,
+    include_empty_note: str,
+) -> str:
+    sections = [f"<section class=\"panel\"><h2>{html.escape(title)}</h2><p>{html.escape(description)}</p>"]
+    global_max = max((float(row.get(value_key) or 0.0) for row in rows), default=0.0) or 1.0
+    grouped = {group: [] for group in GROUP_ORDER}
+    for row in rows:
+        grouped[row["group"]].append(row)
+    for group in GROUP_ORDER:
+        group_rows = sorted(
+            grouped[group],
+            key=lambda item: float(item.get(value_key) or 0.0),
+        )
+        sections.append(f"<div class=\"cohort-block\"><h3>{html.escape(pretty_group(group))}</h3>")
+        if group_rows:
+            sections.append(
+                render_bar_chart(
+                    group_rows,
+                    value_key,
+                    f"{pretty_group(group)} cohort",
+                    value_fmt,
+                    max_value=global_max,
+                )
+            )
+        else:
+            sections.append(f"<p class=\"muted-note\">{html.escape(include_empty_note)}</p>")
+        sections.append("</div>")
+    sections.append("</section>")
+    return "".join(sections)
+
+
+def render_chat_breakdown(chat_breakdown: list[dict[str, Any]]) -> str:
+    sections = ["<section class=\"panel\"><h2>Representative Chat Sets</h2><p>Each section below breaks the panel run apart by the representative small / medium / large chat instead of collapsing everything into one trio summary.</p>"]
+    for block in chat_breakdown:
+        chat = block["chat"]
+        rows = block["rows"]
+        body = []
+        for row in rows:
+            body.append(
+                "<tr>"
+                f"<td>{html.escape(pretty_group(row['group']))}</td>"
+                f"<td>{html.escape(row['label'])}</td>"
+                f"<td>{row['success_count']}/{row['task_count']}</td>"
+                f"<td>{row['runtime_seconds']:.1f}s</td>"
+                f"<td>{html.escape(row['failed_passes'])}</td>"
+                f"<td>{html.escape(row['error_preview'] or '—')}</td>"
+                "</tr>"
+            )
+        sections.append(
+            "<div class=\"chat-block\">"
+            f"<h3>{html.escape(chat['label'])}</h3>"
+            f"<p><strong>{html.escape(chat['title'])}</strong><br><code>{html.escape(chat['relative_path'])}</code></p>"
+            "<table><thead><tr>"
+            "<th>group</th><th>model</th><th>passes ok</th><th>runtime</th><th>failed passes</th><th>error preview</th>"
+            "</tr></thead><tbody>"
+            + "".join(body)
+            + "</tbody></table></div>"
+        )
+    sections.append("</section>")
+    return "".join(sections)
 
 
 def render_projection_table(rows: list[dict[str, Any]]) -> str:
@@ -295,6 +509,57 @@ def render_decision_preview(matrix: dict[str, Any]) -> str:
     )
 
 
+def render_quality_framework(quality_rows: list[dict[str, str]]) -> str:
+    quality_summary = collect_quality_summary(quality_rows)
+    rubric = """
+    <table>
+      <thead><tr><th>dimension</th><th>what it means</th><th>1</th><th>3</th><th>5</th></tr></thead>
+      <tbody>
+        <tr><td>factual accuracy</td><td>Are extracted claims grounded and correct?</td><td>frequent mistakes</td><td>mixed / usable</td><td>clean and trustworthy</td></tr>
+        <tr><td>evidence quality</td><td>Do quotes and references support the claim?</td><td>weak / vague</td><td>some support</td><td>precise and strong</td></tr>
+        <tr><td>false positive control</td><td>Does the model avoid overclaiming, especially in Pass 3/4?</td><td>overclaims often</td><td>mixed</td><td>careful and calibrated</td></tr>
+        <tr><td>completeness</td><td>Did it catch the important material without obvious gaps?</td><td>misses major content</td><td>adequate</td><td>comprehensive</td></tr>
+        <tr><td>synthesis utility</td><td>Will this be useful downstream for aggregation / RAG docs?</td><td>low utility</td><td>moderate utility</td><td>high utility</td></tr>
+      </tbody>
+    </table>
+    """
+    if not quality_summary:
+        return (
+            "<section class=\"panel\">"
+            "<h2>Quality Rating Framework</h2>"
+            "<p>No manual rubric scores are filled yet. Use the 1-5 scheme below in <code>quality_scores.csv</code>, then rerender this report to get per-model quality rollups.</p>"
+            f"{rubric}"
+            "<p class=\"muted-note\">Recommended overall quality rating: mean of the five rubric dimensions, then interpret it alongside operational reliability rather than hiding failures inside one number.</p>"
+            "</section>"
+        )
+
+    body = []
+    for row in sorted(quality_summary, key=lambda item: (item["overall"] is None, -(item["overall"] or 0))):
+        def fmt(value: float | None) -> str:
+            return f"{value:.2f}" if value is not None else "n/a"
+        body.append(
+            "<tr>"
+            f"<td>{html.escape(row['model'])}</td>"
+            f"<td>{fmt(row['overall'])}</td>"
+            f"<td>{fmt(row['factual_accuracy'])}</td>"
+            f"<td>{fmt(row['evidence_quality'])}</td>"
+            f"<td>{fmt(row['false_positive_risk'])}</td>"
+            f"<td>{fmt(row['completeness'])}</td>"
+            f"<td>{fmt(row['synthesis_utility'])}</td>"
+            "</tr>"
+        )
+    return (
+        "<section class=\"panel\">"
+        "<h2>Quality Rating Framework</h2>"
+        "<p>Manual quality scores are present. The table below rolls them up by model while keeping the rubric visible.</p>"
+        "<table><thead><tr><th>model</th><th>overall</th><th>accuracy</th><th>evidence</th><th>false-positive control</th><th>completeness</th><th>synthesis utility</th></tr></thead><tbody>"
+        + "".join(body)
+        + "</tbody></table>"
+        f"{rubric}"
+        "</section>"
+    )
+
+
 def render_html(
     *,
     bundle_dir: Path,
@@ -306,7 +571,7 @@ def render_html(
     privacy_rows: list[dict[str, str]],
     decision_matrix: dict[str, Any] | None,
 ) -> str:
-    extra_small_rows = [row for row in summary_rows if row["group"] == "extra_small"]
+    chat_breakdown = collect_chat_breakdown(bundle_manifest, trio_manifest, {item["resolved_id"]: item for item in load_json(CATALOG_PATH)["models"]})
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -451,16 +716,20 @@ def render_html(
     }}
     .split {{
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
+      grid-template-columns: 1.15fr 0.85fr;
       gap: 18px;
       margin-top: 18px;
     }}
-    .trio-list {{
-      margin: 0;
-      padding-left: 18px;
+    .cohort-block {{
+      margin-top: 18px;
     }}
-    .trio-list li {{
-      margin: 10px 0;
+    .chat-block {{
+      margin-top: 22px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }}
+    .muted-note {{
+      color: var(--muted);
     }}
     @media (max-width: 960px) {{
       .grid, .split {{ grid-template-columns: 1fr; }}
@@ -480,8 +749,19 @@ def render_html(
 
     <div class="split">
       <section class="panel">
-        <h2>Evaluation Trio</h2>
-        {render_trio(trio_manifest)}
+        <h2>Representative Chat Set</h2>
+        <p>The panel uses a fixed three-chat sample: one curated small chat, one medium chat, and one large chat.</p>
+        <table><thead><tr><th>slot</th><th>title</th><th>size</th><th>path</th></tr></thead><tbody>
+        {"".join(
+            "<tr>"
+            f"<td>{html.escape(item['label'])}</td>"
+            f"<td>{html.escape(item['title'])}</td>"
+            f"<td>{item['byte_size']}</td>"
+            f"<td><code>{html.escape(item['relative_path'])}</code></td>"
+            "</tr>"
+            for item in trio_manifest["selected_chats"]
+        )}
+        </tbody></table>
       </section>
       <section class="panel">
         <h2>Decision Matrix Preview</h2>
@@ -490,20 +770,31 @@ def render_html(
     </div>
 
     <section class="panel">
-      <h2>Empirical Trio Summary</h2>
+      <h2>Empirical Model Summary</h2>
       {render_summary_table(summary_rows)}
     </section>
 
-    <div class="split">
-      <section class="panel">
-        <h2>Runtime Comparison</h2>
-        {render_bar_chart(extra_small_rows, 'runtime_seconds', 'Extra-small runtime', '{:.1f}s')}
-      </section>
-      <section class="panel">
-        <h2>Empirical Sample Cost</h2>
-        {render_bar_chart(extra_small_rows, 'sample_cost_usd', 'Extra-small trio sample cost', '${:.6f}')}
-      </section>
-    </div>
+    {render_grouped_bar_sections(
+        summary_rows,
+        title="Empirical Runtime By Cohort",
+        value_key="runtime_seconds",
+        value_fmt="{:.1f}s",
+        description="Runtime bars use actual measured trio-run wall-clock time. Cohorts without completed runs stay empty until those runs exist.",
+        include_empty_note="No runtime data yet for this cohort."
+    )}
+
+    {render_grouped_bar_sections(
+        projection_rows,
+        title="Projected Full-Archive Cost By Cohort",
+        value_key="archive_cost_heuristic",
+        value_fmt="${:.2f}",
+        description="Cost bars use the current heuristic full-archive projection for every model in the catalog.",
+        include_empty_note="No catalog entries in this cohort."
+    )}
+
+    {render_chat_breakdown(chat_breakdown)}
+
+    {render_quality_framework(quality_rows)}
 
     <section class="panel">
       <h2>Cost Projections</h2>

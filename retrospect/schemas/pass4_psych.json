@@ -2,8 +2,92 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pass4_psych.json",
   "title": "Pass 4: Psychological and Behavioral Signals",
-  "description": "Extracts psychological and behavioral signals from a conversation. All items use the evidence_item format to enforce the evidence-over-inference principle.",
+  "description": "Extracts psychological and behavioral signals from a conversation. This pass keeps a structured shape but intentionally uses a softer schema than other passes so providers can return useful psych signals without brittle failures.",
   "type": "object",
+  "$defs": {
+    "psych_signal_item": {
+      "type": "object",
+      "properties": {
+        "epistemic_tier": {
+          "type": "string",
+          "enum": [
+            "behavioral_pattern",
+            "interpretive_hypothesis",
+            "speculative_play"
+          ]
+        },
+        "signal": { "type": "string" },
+        "interpretation": { "type": "string" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "confidence": { "$ref": "_definitions.json#/$defs/confidence" },
+        "salience": { "$ref": "_definitions.json#/$defs/salience" },
+        "disconfirming_evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "alternative_explanations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["signal", "evidence"],
+      "additionalProperties": false
+    },
+    "framework_signal_item": {
+      "type": "object",
+      "properties": {
+        "signal": {
+          "type": "string",
+          "description": "The observed signal."
+        },
+        "epistemic_tier": {
+          "type": "string",
+          "enum": [
+            "behavioral_pattern",
+            "interpretive_hypothesis",
+            "speculative_play"
+          ],
+          "description": "How interpretive this framework-relevant signal is."
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["big_five", "mbti", "enneagram", "attachment_style", "other"]
+          },
+          "minItems": 1,
+          "description": "Which personality frameworks this signal may be relevant to."
+        },
+        "potential_indicators": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What this signal might indicate within those frameworks."
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Verbatim quotes or precise turn references supporting this signal."
+        },
+        "confidence": { "$ref": "_definitions.json#/$defs/confidence" },
+        "disconfirming_evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Evidence that weakens or complicates the proposed interpretation."
+        },
+        "alternative_explanations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["signal", "frameworks", "evidence"],
+      "additionalProperties": false
+    }
+  },
   "properties": {
     "metadata": { "$ref": "_definitions.json#/$defs/extraction_metadata" },
     "emotional_tone_and_energy": {
@@ -36,111 +120,56 @@
         },
         "confidence": { "$ref": "_definitions.json#/$defs/confidence" }
       },
-      "required": ["dominant_affect", "energy_level", "evidence", "confidence"],
+      "required": ["dominant_affect", "energy_level", "evidence"],
       "additionalProperties": false,
       "description": "Dominant emotional tone and energy level of the conversation."
     },
     "cognitive_style": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "How problems are approached: systematic, exploratory, analytical, intuitive, indecisive, etc."
     },
     "communication_style": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "How requests are framed: directive, collaborative, exploratory, self-deprecating, etc."
     },
     "behavioral_patterns": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "Observable patterns in how the user engages with the AI."
     },
     "self_concept_signals": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "How the user describes or positions themselves."
     },
     "defense_or_avoidance_patterns": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "Topics dodged, deflections, rationalizations observed."
     },
     "motivation_and_reward_patterns": {
       "type": "array",
       "items": {
-        "$ref": "_definitions.json#/$defs/evidence_item"
+        "$ref": "#/$defs/psych_signal_item"
       },
       "description": "What seems to drive engagement and what the user finds rewarding."
     },
     "framework_relevant_signals": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "signal": {
-            "type": "string",
-            "description": "The observed signal."
-          },
-          "epistemic_tier": {
-            "type": "string",
-            "enum": [
-              "behavioral_pattern",
-              "interpretive_hypothesis",
-              "speculative_play"
-            ],
-            "description": "How interpretive this framework-relevant signal is."
-          },
-          "frameworks": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["big_five", "mbti", "enneagram", "attachment_style", "other"]
-            },
-            "minItems": 1,
-            "description": "Which personality frameworks this signal may be relevant to."
-          },
-          "potential_indicators": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "What this signal might indicate within those frameworks (e.g. 'high openness', 'INTP preference for Ti', 'type 5 withdrawal')."
-          },
-          "evidence": {
-            "type": "array",
-            "items": { "type": "string" },
-            "minItems": 1,
-            "description": "Verbatim quotes or precise turn references supporting this signal."
-          },
-          "confidence": { "$ref": "_definitions.json#/$defs/confidence" },
-          "disconfirming_evidence": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Evidence that weakens or complicates the proposed interpretation."
-          },
-          "alternative_explanations": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
-        },
-        "required": [
-          "signal",
-          "epistemic_tier",
-          "frameworks",
-          "potential_indicators",
-          "evidence",
-          "confidence",
-          "alternative_explanations"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/framework_signal_item"
       },
       "description": "Evidence that may later map to Big Five, MBTI, Enneagram, attachment style, or other recognized frameworks."
     },

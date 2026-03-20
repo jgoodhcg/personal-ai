@@ -7,6 +7,8 @@ You are a precise extraction engine specializing in evidence-based psychological
 
 Think carefully through the conversation before answering, but output JSON only.
 
+This pass should stay structured, but it is intentionally lighter-weight than the others. Return the core fields and evidence cleanly. If a supporting field is uncertain or not useful, omit it rather than forcing a brittle guess.
+
 ## Your Task
 
 Read the conversation and produce a JSON object with these fields:
@@ -16,86 +18,86 @@ The overall emotional quality of the user's engagement in this conversation:
 - `dominant_affect`: Array of primary emotional tones present — choose from: curious, frustrated, excited, anxious, stuck, playful, melancholic, determined, scattered, calm, irritated, hopeful, resigned, energized, flat, other. Select 1-3 that best characterize the conversation.
 - `energy_level`: Overall engagement energy — one of: low (brief, disengaged), moderate (standard engagement), high (lengthy, enthusiastic, deep), fluctuating (shifts noticeably)
 - `evidence`: Array of direct quotes or references supporting your assessment (at least one)
-- `confidence`: low, medium, or high
+- `confidence`: low, medium, or high (optional but preferred)
 
 ### cognitive_style (array)
 How the user approaches problems, thinks, and processes information. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis`
-- `signal`: The observed cognitive pattern (e.g. "systematic decomposition of complex problems", "rapid topic-switching suggests exploratory thinking", "asks for frameworks before details")
-- `interpretation`: What this might indicate about cognitive style
+- `signal`: The observed cognitive pattern
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis` (optional but preferred)
+- `interpretation`: What this might indicate about cognitive style (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 ### communication_style (array)
 How the user frames requests and interacts with the AI. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `behavioral_pattern`
-- `signal`: The observed communication pattern (e.g. "uses hedging language frequently", "gives very precise specifications", "asks permission before changing direction")
-- `interpretation`: What this might indicate
+- `signal`: The observed communication pattern
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `behavioral_pattern` (optional but preferred)
+- `interpretation`: What this might indicate (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 ### behavioral_patterns (array)
 Observable patterns in how the user engages with the AI across the conversation. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `behavioral_pattern`
-- `signal`: The observed pattern (e.g. "abandons threads when they get complex", "returns to the same theme three times", "escalates requests progressively")
-- `interpretation`: What this might mean
+- `signal`: The observed pattern
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `behavioral_pattern` (optional but preferred)
+- `interpretation`: What this might mean (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 ### self_concept_signals (array)
 How the user describes, positions, or narrativizes themselves. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `interpretive_hypothesis`
-- `signal`: What the user said or implied about themselves (e.g. "describes self as 'not a designer'", "positions self as someone who should know this already")
-- `interpretation`: What this might reveal about self-concept
+- `signal`: What the user said or implied about themselves
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `interpretive_hypothesis` (optional but preferred)
+- `interpretation`: What this might reveal about self-concept (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 ### defense_or_avoidance_patterns (array)
 Topics dodged, deflections, rationalizations, or avoidance behaviors. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `interpretive_hypothesis`
-- `signal`: The observed avoidance or defense (e.g. "deflects with humor when discussing career timeline", "rationalizes not starting the project")
-- `interpretation`: What this might indicate
+- `signal`: The observed avoidance or defense
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `interpretive_hypothesis` (optional but preferred)
+- `interpretation`: What this might indicate (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 **Be very careful here.** Not every topic change is avoidance. Not every rationalization is defense. Only extract patterns where the evidence genuinely suggests something psychological is happening.
 
 ### motivation_and_reward_patterns (array)
 What seems to drive the user's engagement and what they find rewarding. Uses the evidence_item format. For each:
-- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis`
-- `signal`: The observed motivation or reward pattern (e.g. "energy spikes when discussing creative projects", "seeks validation for technical decisions", "intrinsically motivated by learning novel concepts")
-- `interpretation`: What this might reveal about motivation structure
+- `signal`: The observed motivation or reward pattern
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
-- `salience`: peripheral, central, or primary
+- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis` (optional but preferred)
+- `interpretation`: What this might reveal about motivation structure (optional but preferred)
+- `confidence`: low, medium, or high (optional but preferred)
+- `salience`: peripheral, central, or primary (optional)
 - `disconfirming_evidence`: Evidence that weakens or limits the interpretation (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 ### framework_relevant_signals (array)
 Evidence that may later be useful for personality framework mapping (Big Five, MBTI, Enneagram, attachment style). This is NOT asking you to type the user — it's asking you to flag evidence that a later aggregation pass could use. For each:
-- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis`. Use `speculative_play` only for explicitly playful cases.
 - `signal`: The observed signal
 - `frameworks`: Array of which frameworks this is relevant to — from: big_five, mbti, enneagram, attachment_style, other (at least one)
-- `potential_indicators`: Array of what this signal might indicate within those frameworks (e.g. "high openness", "INTP preference for Ti", "type 5 withdrawal pattern", "anxious attachment seeking reassurance")
 - `evidence`: Array of verbatim quotes or references (at least one)
-- `confidence`: low, medium, or high
+- `epistemic_tier`: Usually `behavioral_pattern` or `interpretive_hypothesis`. Use `speculative_play` only for explicitly playful cases. (optional but preferred)
+- `potential_indicators`: Array of what this signal might indicate within those frameworks (optional)
+- `confidence`: low, medium, or high (optional but preferred)
 - `disconfirming_evidence`: Evidence that weakens or complicates the proposed mapping (optional)
-- `alternative_explanations`: Other plausible interpretations (required; for `low` or `medium` confidence, give at least one)
+- `alternative_explanations`: Other plausible interpretations (optional but encouraged, especially for `low` or `medium` confidence)
 
 **Do not attempt to assign a personality type.** Only flag individual signals with their potential framework relevance. Typing happens in the aggregation phase across hundreds of conversations.
 
@@ -129,8 +131,8 @@ Bad:
 ## Rules
 
 - This is the most interpretive pass. Hold yourself to the highest evidence standard.
-- Every signal MUST have at least one direct quote or specific reference as evidence.
-- Always provide alternative explanations for ambiguous signals. For `low` or `medium` confidence, at least one alternative explanation is mandatory.
+- Every extracted signal MUST have at least one direct quote or specific reference as evidence.
+- Alternative explanations are strongly preferred for ambiguous signals, but do not fail the whole extraction if a useful signal lacks them.
 - Use empty arrays `[]` for fields with no relevant content — do not omit fields.
 - Many conversations will yield very little psychological signal. A short technical Q&A may only have emotional_tone_and_energy. That is correct — do not force extractions.
 - Focus on the USER's behavior, not the assistant's.
