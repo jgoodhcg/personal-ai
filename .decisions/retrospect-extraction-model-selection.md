@@ -1,6 +1,6 @@
 # Retrospect Extraction Model Selection
 
-Date: 2026-03-20
+Date: 2026-03-21
 
 ## Current Decision
 
@@ -18,6 +18,12 @@ The strongest new evidence is a **25-chat random sample run for Passes 1-3 with 
 - `$0.097108` sample cost
 - rough projection: about **`$12.55`** and about **`3.16 hours`** for all `3,231` chats on Passes 1-3
 
+The wildcard panel run adds two useful signals:
+
+- `Mercury 2` was the strongest wildcard operationally: `12/12` tasks succeeded in about `9.1s` for about `$0.017171`.
+- `Qwen3.5 397B A17B` was mostly usable at `11/12`, but still had a psych taxonomy miss.
+- `GLM 5 Turbo`, `Mistral Large 3 2512`, and `MiniMax M2.5` are currently blocked by routing or reasoning-policy incompatibilities under the project defaults.
+
 ## Why
 
 The current empirical runs show:
@@ -27,6 +33,7 @@ The current empirical runs show:
 - `GLM 4.7 Flash` is extremely cheap, but much slower and still more brittle.
 - `Gemini 3.1 Flash Lite Preview`, `GLM 4.5 Air`, and `Claude Haiku 4.5` look potentially salvageable, but currently lose on formatting reliability.
 - `Claude Sonnet 4.6` remains too expensive to justify as the primary extraction model given the current psych-pass instability.
+- `Mercury 2` is now a serious synthesis-side candidate because it is fast, cheap, and operationally clean on the trio, even though it is not currently the chosen bulk extractor.
 
 For the archive-scale extraction phase, reliability and cost matter more than squeezing out a small quality gain from a more expensive model.
 
@@ -58,11 +65,14 @@ That does **not** require the strongest model on every raw chat. It is better se
 
 ## Current Operating Plan
 
-1. Run **Passes 1-3** across the full archive with `GPT-5.4 Nano`.
-2. Aggregate and compress those outputs.
-3. Generate plain-text insight summaries from the aggregated structured corpus.
-4. Recursively summarize at larger scopes until the material fits comfortably in the context window of a stronger model.
-5. Use a stronger model for the final reflective / introspective synthesis.
+1. Run **Passes 1-3 only** across the full archive with `GPT-5.4 Nano`.
+2. Run the archive **chronologically in chunks of 10 chats** so progress is easy to inspect and rerun.
+3. Use aggressive concurrency for throughput, but preserve successful outputs even when some items fail.
+4. Write explicit rerun lists for failures and validation issues rather than blocking the whole archive run.
+5. Aggregate and compress those structured outputs.
+6. Generate plain-text insight summaries from the aggregated structured corpus.
+7. Recursively summarize at larger scopes until the material fits comfortably in the context window of a stronger model.
+8. Use a stronger model for the final reflective / introspective synthesis.
 
 ## Unknowns Still Worth Resolving
 

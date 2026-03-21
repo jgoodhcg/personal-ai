@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a static HTML review report for the latest model panel bundle."""
+"""Render a static HTML review report for model panel bundles."""
 
 from __future__ import annotations
 
@@ -51,6 +51,14 @@ def load_json(path: Path) -> dict[str, Any]:
 def latest_bundle() -> Path | None:
     bundles = sorted(EVALUATIONS_DIR.glob("*__model-panel-trio"))
     return bundles[-1] if bundles else None
+
+
+def all_bundles() -> list[Path]:
+    bundles: list[Path] = []
+    for bundle_dir in sorted(EVALUATIONS_DIR.glob("*__model-panel-trio")):
+        if (bundle_dir / "bundle_manifest.json").exists():
+            bundles.append(bundle_dir)
+    return bundles
 
 
 def manifest_path_from_result(result: dict[str, Any]) -> Path | None:
@@ -118,6 +126,78 @@ def collect_summary_rows(
         rows.append(row)
     rows.sort(key=lambda item: (GROUP_ORDER.index(item["group"]), item["runtime_seconds"]))
     return rows
+
+
+def bundle_id(bundle_dir: Path) -> str:
+    return bundle_dir.name
+
+
+def result_error_preview(result: dict[str, Any]) -> str:
+    stdout = result.get("stdout") or ""
+    for line in stdout.splitlines():
+        if line.startswith("  "):
+            return line.strip()
+    return ""
+
+
+def collect_all_summary_rows(
+    bundle_dirs: list[Path],
+    catalog_by_model: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for bundle_dir in bundle_dirs:
+        bundle_manifest = load_json(bundle_dir / "bundle_manifest.json")
+        for result in bundle_manifest.get("run_results", []):
+            model = result["model"]
+            meta = catalog_by_model.get(model)
+            if meta is None:
+                continue
+            manifest_path = manifest_path_from_result(result)
+            run_manifest = load_json(manifest_path) if manifest_path and manifest_path.exists() else {}
+            status_counts = run_manifest.get("status_counts", {})
+            success_count = status_counts.get("success", 0)
+            failed_count = status_counts.get("failed", 0)
+            task_count = run_manifest.get("task_count", 0)
+            rows.append(
+                {
+                    "bundle_id": bundle_id(bundle_dir),
+                    "bundle_path": str(bundle_dir),
+                    "group": meta["group"],
+                    "label": meta["label"],
+                    "model": model,
+                    "status": result.get("status", "unknown"),
+                    "runtime_seconds": float(result.get("duration_seconds") or 0.0),
+                    "success_count": success_count,
+                    "failed_count": failed_count,
+                    "task_count": task_count,
+                    "success_rate": (success_count / task_count) if task_count else None,
+                    "sample_cost_usd": run_manifest.get("reported_cost_total"),
+                    "prompt_tokens": run_manifest.get("actual_prompt_tokens"),
+                    "completion_tokens": run_manifest.get("actual_completion_tokens"),
+                    "manifest_path": str(manifest_path) if manifest_path else "",
+                    "log_file": result.get("debug_log_file", ""),
+                    "error_preview": result_error_preview(result),
+                }
+            )
+    rows.sort(key=lambda item: (item["bundle_id"], GROUP_ORDER.index(item["group"]), item["label"]))
+    return rows
+
+
+def latest_rows_by_model(all_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for row in all_rows:
+        current = latest.get(row["model"])
+        if current is None or row["bundle_id"] > current["bundle_id"]:
+            latest[row["model"]] = row
+    rows = list(latest.values())
+    rows.sort(key=lambda item: (GROUP_ORDER.index(item["group"]), float(item.get("runtime_seconds") or 0.0)))
+    return rows
+
+
+def collect_failure_rows(all_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    failures = [row for row in all_rows if row["status"] == "failed"]
+    failures.sort(key=lambda item: (GROUP_ORDER.index(item["group"]), item["label"], item["bundle_id"]))
+    return failures
 
 
 def parse_task_events(stdout: str) -> list[dict[str, Any]]:
@@ -359,6 +439,33 @@ def render_summary_cards(
         for label, value in cards
     )
 
+
+def render_all_run_cards(
+    bundle_dirs: list[Path],
+    all_rows: list[dict[str, Any]],
+    latest_rows: list[dict[str, Any]],
+) -> str:
+    successful_latest = sum(1 for row in latest_rows if row["status"] == "success")
+    total_cost = sum(float(row["sample_cost_usd"] or 0.0) for row in all_rows if row["sample_cost_usd"] is not None)
+    avg_runtime = (
+        sum(float(row["runtime_seconds"] or 0.0) for row in latest_rows) / len(latest_rows)
+        if latest_rows
+        else 0.0
+    )
+    cards = [
+        ("Bundles with manifests", str(len(bundle_dirs))),
+        ("Measured model runs", str(len(all_rows))),
+        ("Unique models measured", str(len(latest_rows))),
+        ("Latest clean models", f"{successful_latest}/{len(latest_rows)}" if latest_rows else "0/0"),
+        ("Observed spend across runs", money(total_cost, 4)),
+        ("Average latest-model runtime", f"{avg_runtime:.1f}s"),
+    ]
+    return "".join(
+        f'<div class="card"><div class="k">{html.escape(label)}</div><div class="v">{html.escape(value)}</div></div>'
+        for label, value in cards
+    )
+
+
 def render_summary_table(rows: list[dict[str, Any]]) -> str:
     body = []
     for row in rows:
@@ -378,6 +485,55 @@ def render_summary_table(rows: list[dict[str, Any]]) -> str:
         "<table><thead><tr>"
         "<th>group</th><th>model</th><th>status</th><th>tasks</th>"
         "<th>runtime</th><th>sample cost</th><th>prompt tokens</th><th>completion tokens</th>"
+        "</tr></thead><tbody>"
+        + "".join(body)
+        + "</tbody></table>"
+    )
+
+
+def render_all_runs_table(rows: list[dict[str, Any]]) -> str:
+    ordered = sorted(rows, key=lambda item: (item["bundle_id"], GROUP_ORDER.index(item["group"]), item["label"]), reverse=True)
+    body = []
+    for row in ordered:
+        body.append(
+            "<tr>"
+            f"<td><code>{html.escape(row['bundle_id'])}</code></td>"
+            f"<td>{html.escape(pretty_group(row['group']))}</td>"
+            f"<td>{html.escape(row['label'])}</td>"
+            f"<td>{status_chip(row['status'], tone_for_status(row['status']))}</td>"
+            f"<td>{row['success_count']}/{row['task_count']}</td>"
+            f"<td>{row['runtime_seconds']:.1f}s</td>"
+            f"<td>{money(row['sample_cost_usd'], 6)}</td>"
+            f"<td>{html.escape(row['error_preview'] or '—')}</td>"
+            "</tr>"
+        )
+    return (
+        "<table><thead><tr>"
+        "<th>bundle</th><th>group</th><th>model</th><th>status</th><th>tasks</th><th>runtime</th><th>sample cost</th><th>error preview</th>"
+        "</tr></thead><tbody>"
+        + "".join(body)
+        + "</tbody></table>"
+    )
+
+
+def render_failure_table(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return "<p>No failed model runs recorded yet.</p>"
+    body = []
+    for row in rows:
+        body.append(
+            "<tr>"
+            f"<td><code>{html.escape(row['bundle_id'])}</code></td>"
+            f"<td>{html.escape(pretty_group(row['group']))}</td>"
+            f"<td>{html.escape(row['label'])}</td>"
+            f"<td>{row['success_count']}/{row['task_count']}</td>"
+            f"<td>{row['runtime_seconds']:.1f}s</td>"
+            f"<td>{html.escape(row['error_preview'] or '—')}</td>"
+            "</tr>"
+        )
+    return (
+        "<table><thead><tr>"
+        "<th>bundle</th><th>group</th><th>model</th><th>tasks</th><th>runtime</th><th>failure signature</th>"
         "</tr></thead><tbody>"
         + "".join(body)
         + "</tbody></table>"
@@ -562,16 +718,20 @@ def render_quality_framework(quality_rows: list[dict[str, str]]) -> str:
 
 def render_html(
     *,
+    bundle_dirs: list[Path],
     bundle_dir: Path,
     bundle_manifest: dict[str, Any],
     trio_manifest: dict[str, Any],
     summary_rows: list[dict[str, Any]],
+    all_rows: list[dict[str, Any]],
+    latest_rows: list[dict[str, Any]],
     projection_rows: list[dict[str, Any]],
     quality_rows: list[dict[str, str]],
     privacy_rows: list[dict[str, str]],
     decision_matrix: dict[str, Any] | None,
 ) -> str:
     chat_breakdown = collect_chat_breakdown(bundle_manifest, trio_manifest, {item["resolved_id"]: item for item in load_json(CATALOG_PATH)["models"]})
+    failure_rows = collect_failure_rows(all_rows)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -747,6 +907,12 @@ def render_html(
       <div class="grid">{render_summary_cards(bundle_manifest, summary_rows, quality_rows, privacy_rows)}</div>
     </section>
 
+    <section class="panel">
+      <h2>All Empirical Runs</h2>
+      <p>This section aggregates every valid model-panel bundle with a manifest, so the report shows the whole comparison history rather than only the latest cohort run.</p>
+      <div class="grid">{render_all_run_cards(bundle_dirs, all_rows, latest_rows)}</div>
+    </section>
+
     <div class="split">
       <section class="panel">
         <h2>Representative Chat Set</h2>
@@ -770,17 +936,32 @@ def render_html(
     </div>
 
     <section class="panel">
+      <h2>Latest Known Result Per Model</h2>
+      <p>Each model appears once here using its most recent empirical trio result, regardless of which cohort or day it ran on.</p>
+      {render_summary_table(latest_rows)}
+    </section>
+
+    <section class="panel">
       <h2>Empirical Model Summary</h2>
       {render_summary_table(summary_rows)}
     </section>
 
     {render_grouped_bar_sections(
-        summary_rows,
+        latest_rows,
         title="Empirical Runtime By Cohort",
         value_key="runtime_seconds",
         value_fmt="{:.1f}s",
-        description="Runtime bars use actual measured trio-run wall-clock time. Cohorts without completed runs stay empty until those runs exist.",
+        description="Runtime bars use the latest measured trio-run wall-clock time for each model. Bars share an absolute scale across cohorts.",
         include_empty_note="No runtime data yet for this cohort."
+    )}
+
+    {render_grouped_bar_sections(
+        latest_rows,
+        title="Empirical Trio Cost By Cohort",
+        value_key="sample_cost_usd",
+        value_fmt="${:.4f}",
+        description="Cost bars use the latest measured trio-run spend for each model. Bars share an absolute scale across cohorts.",
+        include_empty_note="No empirical trio cost data yet for this cohort."
     )}
 
     {render_grouped_bar_sections(
@@ -794,11 +975,22 @@ def render_html(
 
     {render_chat_breakdown(chat_breakdown)}
 
+    <section class="panel">
+      <h2>Failure Signatures Across All Runs</h2>
+      <p>This is the quickest way to see which failures were routing problems, which were schema-discipline problems, and which were compatibility issues.</p>
+      {render_failure_table(failure_rows)}
+    </section>
+
     {render_quality_framework(quality_rows)}
 
     <section class="panel">
       <h2>Cost Projections</h2>
       {render_projection_table(projection_rows)}
+    </section>
+
+    <section class="panel">
+      <h2>All Model Runs</h2>
+      {render_all_runs_table(all_rows)}
     </section>
   </div>
 </body>
@@ -812,6 +1004,7 @@ def main() -> None:
     if bundle_dir is None:
         raise SystemExit("No model-panel bundle found. Run scripts/run_model_panel.py first.")
 
+    bundle_dirs = all_bundles()
     bundle_manifest = load_json(bundle_dir / "bundle_manifest.json")
     trio_manifest = load_json(TRIO_PATH)
     catalog = load_json(CATALOG_PATH)
@@ -821,7 +1014,9 @@ def main() -> None:
     decision_matrix = load_json(DECISION_PATH) if DECISION_PATH.exists() else None
 
     summary_rows = collect_summary_rows(bundle_manifest, catalog_by_model)
-    projection_rows = collect_projection_rows(summary_rows, catalog)
+    all_rows = collect_all_summary_rows(bundle_dirs, catalog_by_model)
+    latest_rows = latest_rows_by_model(all_rows)
+    projection_rows = collect_projection_rows(latest_rows, catalog)
 
     output_path = Path(args.output).expanduser()
     if not output_path.is_absolute():
@@ -829,10 +1024,13 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         render_html(
+            bundle_dirs=bundle_dirs,
             bundle_dir=bundle_dir,
             bundle_manifest=bundle_manifest,
             trio_manifest=trio_manifest,
             summary_rows=summary_rows,
+            all_rows=all_rows,
+            latest_rows=latest_rows,
             projection_rows=projection_rows,
             quality_rows=quality_rows,
             privacy_rows=privacy_rows,

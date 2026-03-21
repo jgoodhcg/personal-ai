@@ -3,7 +3,7 @@ title: "Chat Archive Processing"
 status: active
 description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, narrative potential, and RAG knowledge base"
 created: 2026-03-06
-updated: 2026-03-20
+updated: 2026-03-21
 subproject: retrospect
 tags: [knowledge-base, rag, chat-exports, self-discovery, psychology, narrative, creative]
 priority: high
@@ -206,6 +206,9 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 
 - **Bulk extraction model:** `openai/gpt-5.4-nano`
 - **Bulk extraction scope:** run **Passes 1-3** across all chats first
+- **Execution shape:** run the archive **chronologically in chunks of 10 chats**
+- **Concurrency posture:** use the highest practical request concurrency the provider tolerates cleanly; optimize for throughput rather than manual babysitting
+- **Failure handling:** keep successful outputs, record failed items and validation issues, and produce explicit rerun lists instead of blocking the whole archive run
 - **Psych/introspection path:** treat deeper psych insight as an aggregation and synthesis problem unless a later Pass 4 path proves clearly valuable and operationally stable
 - **Likely stronger synthesis candidates:** `openai/gpt-5.4-mini` and `google/gemini-3-flash-preview`
 
@@ -258,6 +261,9 @@ The primary product is not "a personality type." The primary product is a high-t
 2. ~~Build extraction prompts for each pass~~ — DONE
 3. ~~Build extraction runner script (`retrospect/scripts/extract.py`)~~ — DONE
 4. ~~Smoke test extraction and model-panel harness~~ — DONE
+5. Execute the full-archive Pass 1-3 rollout with `gpt-5.4-nano` in chronological 10-chat chunks, preserving successes and collecting rerun lists
+6. Aggregate the resulting structured corpus into chunked evidence digests
+7. Run layered plain-text synthesis over those digests with progressively stronger models until the full corpus fits comfortably in a final synthesis context window
 5. ~~Run initial trio comparison across extra-small and smaller candidates~~ — DONE
 6. Execute full **Pass 1-3** extraction with `openai/gpt-5.4-nano`
    - keep manifests and cost tracking

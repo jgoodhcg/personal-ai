@@ -126,24 +126,24 @@
           "color": "yellow"
         },
         "Mercury 2": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "12/12 tasks succeeded on the wildcard trio run",
+          "color": "green"
         },
         "GLM 5 Turbo": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "1/12 tasks succeeded on the wildcard trio run; aborted after a fatal routing error (404 no eligible endpoints)",
+          "color": "red"
         },
         "Mistral Large 3 2512": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "0/12 tasks succeeded on the wildcard trio run; immediate routing failure (404 no eligible endpoints)",
+          "color": "red"
         },
         "Qwen3.5 397B A17B": {
-          "text": "Pending trio run",
+          "text": "11/12 tasks succeeded on the wildcard trio run; one psych enum validation miss",
           "color": "yellow"
         },
         "MiniMax M2.5": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "0/12 tasks succeeded on the wildcard trio run; endpoint rejected reasoning-disabled requests",
+          "color": "red"
         }
       }
     },
@@ -199,24 +199,24 @@
           "color": "yellow"
         },
         "Mercury 2": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "9.1s for the wildcard trio run; fastest measured wildcard by a wide margin",
+          "color": "green"
         },
         "GLM 5 Turbo": {
-          "text": "Pending trio run",
+          "text": "26.6s until fatal routing failure halted the run",
           "color": "yellow"
         },
         "Mistral Large 3 2512": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "1.2s until immediate routing failure halted the run",
+          "color": "red"
         },
         "Qwen3.5 397B A17B": {
-          "text": "Pending trio run",
+          "text": "113.1s for the wildcard trio run",
           "color": "yellow"
         },
         "MiniMax M2.5": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "2.5s until immediate reasoning-policy failure halted the run",
+          "color": "red"
         }
       }
     },
@@ -272,23 +272,23 @@
           "color": "yellow"
         },
         "Mercury 2": {
-          "text": "Pending trio run",
-          "color": "yellow"
+          "text": "$0.017171 for the wildcard trio sample",
+          "color": "green"
         },
         "GLM 5 Turbo": {
-          "text": "Pending trio run",
+          "text": "$0.006226 before the fatal routing error; partial run only",
           "color": "yellow"
         },
         "Mistral Large 3 2512": {
-          "text": "Pending trio run",
+          "text": "No empirical cost captured because the run failed before producing billable output",
           "color": "yellow"
         },
         "Qwen3.5 397B A17B": {
-          "text": "Pending trio run",
+          "text": "$0.066602 for the wildcard trio sample",
           "color": "yellow"
         },
         "MiniMax M2.5": {
-          "text": "Pending trio run",
+          "text": "No empirical cost captured because the endpoint rejected the reasoning policy immediately",
           "color": "yellow"
         }
       }
