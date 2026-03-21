@@ -92,6 +92,7 @@ class TaskResult:
     status: str
     output_path: str | None = None
     error: str | None = None
+    warning: str | None = None
     prompt_tokens_estimate: int = 0
     completion_tokens_estimate: int = 0
     prompt_tokens_actual: int | None = None
@@ -220,6 +221,9 @@ class Reporter:
                 f"{self._style(duration, '2')}"
             )
         self.emit(line)
+        if result.warning and (self.verbose or self.debug):
+            warning_text = result.warning if self.debug else truncate_text(first_line(result.warning), 140)
+            self.emit(f"  {self._style(warning_text, '33')}")
         if result.error:
             error_text = result.error if self.debug else truncate_text(first_line(result.error), 140)
             self.emit(f"  {self._style(error_text, '31')}")
@@ -412,6 +416,12 @@ def parse_args() -> argparse.Namespace:
         "--rerun",
         action="store_true",
         help="Allow new outputs even if the pass/model already has extracted files",
+    )
+    parser.add_argument(
+        "--validation-mode",
+        choices=["strict", "warn"],
+        default="strict",
+        help="Whether schema validation errors should fail the task or be recorded as warnings.",
     )
     parser.add_argument(
         "--temperature",
@@ -1162,24 +1172,27 @@ async def execute_task(
     }
 
     validation_errors = validate_output(extracted, task.pass_id)
+    validation_warning = None
     if validation_errors:
         write_failure_artifact(
             run_dir,
             task,
-            "validation-error",
+            "validation-warning" if args.validation_mode == "warn" else "validation-error",
             {
                 "validation_errors": validation_errors,
                 "output": extracted,
                 "request_payload": payload,
             },
         )
-        return TaskResult(
-            task=task,
-            status="failed",
-            error="; ".join(validation_errors),
-            prompt_tokens_estimate=estimated_prompt_tokens,
-            completion_tokens_estimate=estimated_completion_tokens,
-        )
+        if args.validation_mode == "strict":
+            return TaskResult(
+                task=task,
+                status="failed",
+                error="; ".join(validation_errors),
+                prompt_tokens_estimate=estimated_prompt_tokens,
+                completion_tokens_estimate=estimated_completion_tokens,
+            )
+        validation_warning = "; ".join(validation_errors)
 
     output_path = build_output_path(task, model_slug, run_id)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1193,6 +1206,7 @@ async def execute_task(
         task=task,
         status="success",
         output_path=str(output_path),
+        warning=validation_warning,
         prompt_tokens_estimate=estimated_prompt_tokens,
         completion_tokens_estimate=estimated_completion_tokens,
         prompt_tokens_actual=usage_number(usage, "prompt_tokens", "input_tokens"),
@@ -1293,6 +1307,15 @@ def build_manifest(
         for item in results
         if item.status == "failed"
     ]
+    warnings = [
+        {
+            "pass_id": item.task.pass_id,
+            "source_file": item.task.chat.path.name,
+            "warning": item.warning,
+        }
+        for item in results
+        if item.warning
+    ]
 
     return {
         "run_id": run_id,
@@ -1326,6 +1349,9 @@ def build_manifest(
         "actual_total_tokens": actual_total_tokens or None,
         "reported_cost_total": reported_cost_total or None,
         "reported_cost_units": "OpenRouter reported cost" if reported_cost_total else None,
+        "validation_mode": args.validation_mode,
+        "warning_count": len(warnings),
+        "warnings": warnings,
         "failures": failures,
         "chat_preview": [task.chat.path.name for task in tasks[:20]],
     }
@@ -1340,6 +1366,8 @@ def print_summary(manifest: dict[str, Any], reporter: Reporter) -> None:
     reporter.info("Tasks", str(manifest["task_count"]))
     reporter.info("Duration", f"{manifest['duration_seconds']:.3f}s")
     reporter.info("Status counts", json.dumps(manifest["status_counts"], sort_keys=True))
+    if manifest.get("warning_count"):
+        reporter.info("Warnings", str(manifest["warning_count"]))
     reporter.info(
         "Estimated tokens",
         f"prompt={manifest['estimated_prompt_tokens']} completion={manifest['estimated_completion_tokens']}",
