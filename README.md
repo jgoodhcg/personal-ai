@@ -36,6 +36,7 @@ Common operations:
 docker compose up -d
 docker compose down
 docker compose logs -f chat
+docker compose logs -f searxng
 docker compose pull
 tailscale status
 ```
@@ -54,18 +55,23 @@ tailscale status
 From your laptop (requires Tailscale):
 
 ```bash
-ssh root@personal-ai
-su personal-ai
-cd ~/personal-ai
-git pull
-docker compose down
+ssh personal-ai@personal-ai
+cd /home/personal-ai/personal-ai
+git pull --ff-only
+docker compose config
+docker compose up --dry-run
 docker compose pull
 docker compose up -d
-exit  # back to root
+docker compose ps
 exit  # disconnect
 ```
 
-> Yes, the Tailscale hostname, droplet name, Linux user, and project directory are all `personal-ai`. It's confusing but it works.
+> This example assumes the default project user is `personal-ai` and the repo lives at `/home/personal-ai/personal-ai`.
+
+- Use `docker compose up -d`, not plain `docker compose up`, for routine updates. Detached mode returns your shell immediately; attached mode tails logs and `Ctrl+C` stops the stack.
+- `docker compose down` is not required for normal image updates. `docker compose pull` followed by `docker compose up -d` recreates changed services with less downtime.
+- If SearXNG logs that an update is available for `/etc/searxng/settings.yml`, review and merge the bind-mounted files at `searxng/settings.yml` and `searxng/settings.yml.new`, then run `docker compose up -d` again.
+- If you chose a different `PROJECT_USER` during setup, replace both instances of `personal-ai` in the SSH command and path with that username.
 
 ## Notes
 
