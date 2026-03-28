@@ -3,7 +3,7 @@ title: "Chat Archive Processing"
 status: active
 description: "Process exported chat histories into structured extractions for self-discovery, psychological analysis, narrative potential, and RAG knowledge base"
 created: 2026-03-06
-updated: 2026-03-21
+updated: 2026-03-28
 subproject: retrospect
 tags: [knowledge-base, rag, chat-exports, self-discovery, psychology, narrative, creative]
 priority: high
@@ -26,6 +26,7 @@ Turn years of ChatGPT, Claude, and z.ai/GLM chat exports into structured data fo
 - **Source**: 3,231 normalized conversations (2023-2026)
 - **Platforms**: ChatGPT, Claude, z.ai/GLM
 - **Status**: Normalization complete, chats in `retrospect/data/chats/`
+- **Current extraction status**: Passes 1-3 are now complete for all `3,231` chats after the initial 2026-03-21 rollout, a large rerun on 2026-03-28, and a final 5-chat cleanup pass
 - **Pipeline home**: `retrospect/` (isolated monorepo-style directory)
 
 ## Extraction Architecture
@@ -186,12 +187,16 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - Current working assumption: full four-pass extraction with the cleanest hosted models will likely exceed the original `$20` target
 - Current operating plan should reduce cost by running Passes 1-3 cheaply across all chats first, then doing layered synthesis on compressed artifacts
 - Latest empirical signal: `openai/gpt-5.4-nano` completed a 25-chat random sample for Passes 1-3 with `75/75` successes in `87.9s` for `$0.097108`, projecting to about **`$12.55`** and about **`3.16 hours`** for the full archive at similar settings
-- Monitor costs during the initial full Pass 1-3 execution
+- The first full Pass 1-3 rollout later failed mostly due to `HTTP 402` credit exhaustion rather than schema or architectural problems, so cost monitoring now matters most during rerun completion
 
 ## Validation
 
 - [x] Extraction schema defined and validated
 - [x] Smoke tests and trio panel runs produce valid outputs for at least one clean baseline model
+- [ ] Random quality-evaluation sample selected with a documented target confidence / margin-of-error rationale
+- [ ] Frontier adjudicator model(s) rate sampled chats against the original chat plus `gpt-5.4-nano` outputs
+- [ ] Human-in-the-loop ratings completed for a smaller calibration subset
+- [ ] Agreement / disagreement between adjudicator models and human ratings summarized
 - [ ] Each pass extracts target fields correctly
 - [ ] Evidence is verbatim or turn-referenced and confidence is calibrated
 - [ ] Negative-space reporting is populated for low-signal conversations
@@ -209,12 +214,25 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - **Execution shape:** run the archive **chronologically in chunks of 10 chats**
 - **Concurrency posture:** use the highest practical request concurrency the provider tolerates cleanly; optimize for throughput rather than manual babysitting
 - **Failure handling:** keep successful outputs, record failed items and validation issues, and produce explicit rerun lists instead of blocking the whole archive run
+- **Resume strategy:** resume by rerunning the saved failed-chat list with `extract.py`; do not restart the archive rollout by chunk index
 - **Psych/introspection path:** treat deeper psych insight as an aggregation and synthesis problem unless a later Pass 4 path proves clearly valuable and operationally stable
 - **Likely stronger synthesis candidates:** `openai/gpt-5.4-mini` and `google/gemini-3-flash-preview`
 
 This reflects the current empirical tradeoff: `gpt-5.4-nano` is the best blend of cost, runtime, and output correctness so far, while stronger hosted models can be reserved for smaller, compressed downstream contexts.
 
-The current empirical evidence is now strong enough to justify starting the full Pass 1-3 run rather than waiting for more model-comparison work.
+The initial full Pass 1-3 run has already been exercised successfully enough to validate the rollout shape. The near-term goal is to finish the rerun backlog and move on to aggregation rather than redesign extraction.
+
+## Extraction Quality Analysis
+
+Before treating the `gpt-5.4-nano` archive outputs as a settled substrate for aggregation, run a focused quality-analysis pass:
+
+- Select a random sample sized to be statistically meaningful for archive-level quality estimation
+- Give each sampled case to one or more frontier adjudicator models with both the original chat and the corresponding nano extraction outputs
+- Have adjudicators rate extraction quality on a brief rubric such as factual accuracy, completeness, evidence fidelity, overreach, and usefulness
+- Use a smaller subset of that sample for manual human scoring to calibrate the model judges
+- Compare model-judge ratings against each other and against the human subset, then record the findings in `retrospect/data/reports/`
+
+This analysis should inform whether prompt/schema revisions are needed before deeper aggregation and synthesis work.
 
 ## Scope
 
@@ -235,6 +253,12 @@ The current empirical evidence is now strong enough to justify starting the full
 - Learning trajectory / mind changes
 - Contradiction detection across conversations
 - Temporal pattern analysis and time-sliced summaries
+
+### Brief Additional Candidates
+- A dedicated decision-pattern layer across repeated tradeoff discussions
+- Recurring places, communities, and organizations
+- Health, body, and energy themes if privacy review says they are worth keeping
+- Stronger cross-chat entity resolution for people, projects, and media
 
 ## Value Targets
 
@@ -261,25 +285,26 @@ The primary product is not "a personality type." The primary product is a high-t
 2. ~~Build extraction prompts for each pass~~ — DONE
 3. ~~Build extraction runner script (`retrospect/scripts/extract.py`)~~ — DONE
 4. ~~Smoke test extraction and model-panel harness~~ — DONE
-5. Execute the full-archive Pass 1-3 rollout with `gpt-5.4-nano` in chronological 10-chat chunks, preserving successes and collecting rerun lists
-6. Aggregate the resulting structured corpus into chunked evidence digests
-7. Run layered plain-text synthesis over those digests with progressively stronger models until the full corpus fits comfortably in a final synthesis context window
 5. ~~Run initial trio comparison across extra-small and smaller candidates~~ — DONE
-6. Execute full **Pass 1-3** extraction with `openai/gpt-5.4-nano`
-   - keep manifests and cost tracking
-   - record any systematic schema drift for later coercion rules
-7. Build aggregation script (`retrospect/scripts/aggregate.py`)
+6. ~~Execute the first full-archive Pass 1-3 rollout with `openai/gpt-5.4-nano` in chronological 10-chat chunks, preserving successes and collecting rerun lists~~ — DONE
+7. ~~Resume from the saved rerun list and complete Passes 1-3 for the full archive~~ — DONE
+8. Build the extraction quality-analysis workflow
+   - select the random evaluation sample and preserve the sample manifest
+   - run one or more frontier adjudicator models on original-chat plus nano-output pairs
+   - score a smaller human-reviewed subset for calibration
+   - summarize rating distributions and judge agreement in `retrospect/data/reports/`
+9. Build aggregation script (`retrospect/scripts/aggregate.py`)
    - deduplicate entities
    - add recurrence counts, temporal spread, and cross-context consistency scoring
    - produce compression-ready evidence digests
-8. Build layered synthesis pipeline
+10. Build layered synthesis pipeline
    - plain-text summaries over aggregated evidence
    - recursive compression until one-context-window dossiers exist
    - final reflective synthesis with a stronger model
-9. Reassess Pass 4
+11. Reassess Pass 4
    - either rerun it selectively on high-signal subsets
    - or replace most of its value with aggregation-time and synthesis-time psychological analysis
-10. Build inference script (`retrospect/scripts/infer.py`)
+12. Build inference script (`retrospect/scripts/infer.py`)
     - require disconfirming evidence and time-sliced checks for elevated claims
-11. Build synthesis script (`retrospect/scripts/synthesize.py`)
+13. Build synthesis script (`retrospect/scripts/synthesize.py`)
     - split assistant-context outputs from interpretive-analysis outputs
