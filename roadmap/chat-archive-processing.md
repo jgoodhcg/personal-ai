@@ -153,6 +153,7 @@ No trait-level or framework-level claim should be synthesized unless it shows up
      - `working_with_me.md` — instructions for AI assistants
      - `decision_patterns.md` — practical decision habits grounded in repeated evidence
      - `media_and_influences.md` — cultural references and tastes
+   - **Current status:** the first-pass assistant-context set above now exists on disk and has been manually reviewed for obvious overreach and sensitivity before upload planning.
    - **Interpretive analysis docs** in `retrospect/data/knowledge_base/analysis/`:
      - `ideas_gallery.md` — full catalog with patterns
     - `psychological_profile.md` — evidence-based personality analysis with explicit confidence and disconfirming evidence
@@ -164,8 +165,10 @@ No trait-level or framework-level claim should be synthesized unless it shows up
      - hand the final compressed dossier to a stronger model for reflective synthesis
 
 8. **Human review** — Manual pass over all generated documents. Delete incorrect/outdated/sensitive content. Non-optional.
+   - **Current status:** the assistant-context docs have completed an initial user review and are considered acceptable for controlled Open WebUI use.
 
 9. **Deploy** — Upload only the assistant-context documents to Open WebUI as RAG documents by default. Interpretive analysis docs require explicit opt-in after review.
+   - **Current plan:** keep the six assistant-context docs as separate knowledge documents inside one Open WebUI knowledge base, use a dedicated chat folder for default context, and use a trimmed `portable_personalization` / `system-prompt` path for custom-model calibration across frequently used frontier models.
 
 ### Data Flow
 
@@ -203,8 +206,8 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - [ ] Aggregation deduplicates and counts correctly
 - [ ] Derived analysis produces framework mappings with evidence, disconfirming evidence, and recurrence thresholds
 - [ ] Sample evaluation rubric captures false positives for Pass 3 and Pass 4
-- [ ] Synthesized docs are factual and cited
-- [ ] Human review completed before any upload
+- [x] Synthesized docs are factual and cited
+- [x] Human review completed before any upload
 - [ ] Documents searchable in Open WebUI RAG
 
 ## Current Operating Decision
@@ -217,6 +220,8 @@ All data lives under `retrospect/data/` (gitignored). Schemas live in `retrospec
 - **Resume strategy:** resume by rerunning the saved failed-chat list with `extract.py`; do not restart the archive rollout by chunk index
 - **Psych/introspection path:** treat deeper psych insight as an aggregation and synthesis problem unless a later Pass 4 path proves clearly valuable and operationally stable
 - **Likely stronger synthesis candidates:** `openai/gpt-5.4-mini` and `google/gemini-3-flash-preview`
+- **Assistant-context deployment shape:** use the reviewed six-document assistant-context set as a single Open WebUI knowledge base, keep documents separate for cleaner retrieval, and reserve deeper personal context for local/private workflows rather than broad provider-facing prompts
+- **Portable cross-model calibration:** maintain a separate non-sensitive `portable_personalization.md` and derived `system-prompt.md` for custom models used outside the richer local knowledge-base flow
 
 This reflects the current empirical tradeoff: `gpt-5.4-nano` is the best blend of cost, runtime, and output correctness so far, while stronger hosted models can be reserved for smaller, compressed downstream contexts.
 
