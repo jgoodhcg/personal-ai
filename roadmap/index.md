@@ -18,6 +18,7 @@ The platform's shape is emerging through use. What's clear: self-hosted, privacy
 
 - `foundation.md` (`active`): infrastructure baseline on VPS/Tailscale + Open WebUI.
 - `launch-readiness.md` (`ready`): launch gating checks and hardening for Open WebUI.
+- `open-responses-connection.md` (`draft`): test a dedicated Open Responses connection and decide whether OpenRouter works or direct provider access is required.
 - `chat-archive-processing.md` (`ready`): process exported chat histories into RAG knowledge base with psychological and narrative analysis.
 - `task-runner.md` (`draft`): scheduled automation jobs after foundation is stable.
 - `dashboard.md` (`draft`): optional visibility UI for task runs.
