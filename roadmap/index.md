@@ -18,6 +18,7 @@ The platform's shape is emerging through use. What's clear: self-hosted, privacy
 
 - `foundation.md` (`active`): infrastructure baseline on VPS/Tailscale + Open WebUI.
 - `launch-readiness.md` (`ready`): launch gating checks and hardening for Open WebUI.
+- `open-terminal-worker.md` (`draft`): evaluate Open Terminal as a tailnet-only remote worker for chat-driven shell access, repo iteration, and private app previews.
 - `open-responses-connection.md` (`draft`): test a dedicated Open Responses connection and decide whether OpenRouter works or direct provider access is required.
 - `chat-archive-processing.md` (`ready`): process exported chat histories into RAG knowledge base with psychological and narrative analysis.
 - `task-runner.md` (`draft`): scheduled automation jobs after foundation is stable.
@@ -30,4 +31,3 @@ Ideas not yet promoted to work units:
 
 - Ollama for local models (resource constraints TBD)
 - Mobile shortcut for quick capture
-- Open Terminal (Open WebUI native integration) -- gives the chat model real shell access for ad-hoc tasks (file ops, scripts, package installs) directly from the chat UI. Interesting but cutting-edge; revisit after it stabilizes. Open question: Docker mode (isolated container, duplicates env) vs bare metal (real VPS access, higher risk)? See: https://docs.openwebui.com/features/extensibility/open-terminal/
