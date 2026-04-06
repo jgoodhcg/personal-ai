@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "quality_eval_rating.json",
+  "title": "Quality Evaluation Rating",
+  "description": "Structured rating of a Pass 1-3 extraction bundle against the original chat.",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "source_conversation_id": { "type": "string" },
+        "source_file": { "type": "string" },
+        "judge_model": { "type": "string" },
+        "extraction_model": { "type": "string" },
+        "rubric_version": { "type": "string" },
+        "judged_at": { "type": "string" }
+      },
+      "required": [
+        "source_conversation_id",
+        "source_file",
+        "judge_model",
+        "extraction_model",
+        "rubric_version",
+        "judged_at"
+      ],
+      "additionalProperties": false
+    },
+    "overall": {
+      "type": "object",
+      "properties": {
+        "downstream_ready": { "type": "boolean" },
+        "overall_score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "summary": { "type": "string" }
+      },
+      "required": [
+        "downstream_ready",
+        "overall_score",
+        "confidence",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "dimensions": {
+      "type": "object",
+      "properties": {
+        "factual_accuracy": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "completeness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "evidence_fidelity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "restraint": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "downstream_usefulness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      },
+      "required": [
+        "factual_accuracy",
+        "completeness",
+        "evidence_fidelity",
+        "restraint",
+        "downstream_usefulness"
+      ],
+      "additionalProperties": false
+    },
+    "major_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "factual_error",
+              "omission",
+              "evidence_problem",
+              "overreach",
+              "scope_mismatch",
+              "formatting_issue",
+              "other"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["minor", "moderate", "major"]
+          },
+          "pass_id": {
+            "type": "string",
+            "enum": [
+              "pass1_summary",
+              "pass2_projects",
+              "pass3_people",
+              "bundle"
+            ]
+          },
+          "note": { "type": "string" }
+        },
+        "required": ["category", "severity", "pass_id", "note"],
+        "additionalProperties": false
+      }
+    },
+    "notable_strengths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "recommended_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "pass_notes": {
+      "type": "object",
+      "properties": {
+        "pass1_summary": { "type": ["string", "null"] },
+        "pass2_projects": { "type": ["string", "null"] },
+        "pass3_people": { "type": ["string", "null"] }
+      },
+      "required": ["pass1_summary", "pass2_projects", "pass3_people"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "metadata",
+    "overall",
+    "dimensions",
+    "major_issues",
+    "notable_strengths",
+    "recommended_actions",
+    "pass_notes"
+  ],
+  "additionalProperties": false
+}

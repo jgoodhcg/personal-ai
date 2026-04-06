@@ -9,9 +9,12 @@
 - `scripts/validate_extraction.py` validates extraction JSON against the schemas in `schemas/`
 - `scripts/select_representative_sample.py` creates a small deterministic sample for model-pricing experiments under `data/samples/`
 - `scripts/select_eval_trio.py` creates a fixed small/medium/large trio for empirical cross-model runs
+- `scripts/select_quality_eval_sample.py` creates deterministic `200 / 25 / 5` quality-evaluation samples under `data/samples/`
 - `scripts/analyze_model_costs.py` projects sample and full-archive costs across the model catalog and writes reports under `data/reports/`
 - `scripts/run_model_panel.py` runs a fixed chat list across a model panel and emits manual quality/privacy review templates
+- `scripts/run_quality_eval.py` asks one or more judge models to score existing Pass 1-3 extraction bundles against the original chats
 - `scripts/render_model_panel_report.py` renders a static HTML review report from the latest model-panel bundle
+- `QUALITY_EVAL_RUBRIC.md` defines the scoring rubric used for automated and human extraction review
 - `prompts/` contains the Jinja prompt templates for each extraction pass
 - `schemas/` contains the JSON Schemas that define the extraction contract
 - `config/model_catalog.json` tracks the current model shortlist, pricing, and resolution notes for renamed or missing SKUs
@@ -114,7 +117,9 @@ From `retrospect/`:
 ./.venv/bin/python scripts/validate_extraction.py data/extractions/
 ./.venv/bin/python scripts/select_representative_sample.py
 ./.venv/bin/python scripts/select_eval_trio.py
+./.venv/bin/python scripts/select_quality_eval_sample.py
 ./.venv/bin/python scripts/analyze_model_costs.py
 ./.venv/bin/python scripts/run_model_panel.py --group smaller
+./.venv/bin/python scripts/run_quality_eval.py --model openai/gpt-5.4
 ./.venv/bin/python scripts/render_model_panel_report.py
 ```

@@ -1,0 +1,230 @@
+{
+  "decision": {
+    "statement": "Which self-hosted stack should we use for local-first photo and document management on the old-laptop home server?",
+    "description": "Scope: local-network-only deployment on an old laptop with external SSD, off-site restic backups to DigitalOcean Spaces, strong filesystem portability, low ongoing ops, good photo browsing, fast manual curation, and a boring document sync layer. This matrix is qualitative and derived from the 2026-01-07 and 2026-01-08 archived planning chats."
+  },
+  "options": [
+    {
+      "label": "Nextcloud only",
+      "description": "Use Nextcloud for both documents and photos."
+    },
+    {
+      "label": "Immich + Nextcloud",
+      "description": "Use Immich for photos and Nextcloud for documents."
+    },
+    {
+      "label": "PhotoPrism + Nextcloud",
+      "description": "Use PhotoPrism for photos and Nextcloud for documents."
+    },
+    {
+      "label": "PhotoPrism + digiKam + Nextcloud",
+      "description": "Use PhotoPrism for browsing, digiKam on the workstation for curation, and Nextcloud for documents."
+    },
+    {
+      "label": "Immich + PhotoPrism + digiKam + Nextcloud",
+      "description": "Use Immich for phone ingest, PhotoPrism for browsing, digiKam for curation, and Nextcloud for documents."
+    }
+  ],
+  "criteria": [
+    {
+      "name": "Low-ops fit for current scope",
+      "cells": {
+        "Nextcloud only": {
+          "text": "One app, but it becomes overloaded and unpleasant at photo scale",
+          "color": "yellow"
+        },
+        "Immich + Nextcloud": {
+          "text": "Reasonable, but still two always-on apps and more moving parts than necessary now",
+          "color": "yellow"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Operationally simple enough for a local-only stack",
+          "color": "green"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best balance: simple server, richer workstation workflow",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Most capable, but overbuilt for the current need",
+          "color": "red"
+        }
+      }
+    },
+    {
+      "name": "Document sync and light collaboration",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Strong document hub",
+          "color": "green"
+        },
+        "Immich + Nextcloud": {
+          "text": "Strong document hub",
+          "color": "green"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Strong document hub",
+          "color": "green"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Strong document hub",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Strong document hub",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Photo browsing, search, and discovery",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Weakest browsing experience for a serious photo library",
+          "color": "red"
+        },
+        "Immich + Nextcloud": {
+          "text": "Good browsing and polished mobile-first UX",
+          "color": "green"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Strong browsing, search, faces, and albums for local archives",
+          "color": "green"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Strong browsing plus a separate curation layer",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best feature coverage, but with duplicated roles",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Fast per-photo keyboard curation",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Poor fit for rapid individual tagging",
+          "color": "red"
+        },
+        "Immich + Nextcloud": {
+          "text": "Still weak for rapid individual tagging",
+          "color": "red"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Better browsing, but still not the right primary tagging tool",
+          "color": "red"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best fit: digiKam covers the exact manual curation workflow",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Also strong because digiKam does the real curation work",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Phone auto-backup convenience",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Available, but historically flaky and less pleasant",
+          "color": "yellow"
+        },
+        "Immich + Nextcloud": {
+          "text": "Best auto-backup story out of the box",
+          "color": "green"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Manual ingest or third-party tooling required",
+          "color": "yellow"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Manual ingest is acceptable for current scope, but not zero-touch",
+          "color": "yellow"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best auto-backup story with strongest archive workflow",
+          "color": "green"
+        }
+      }
+    },
+    {
+      "name": "Filesystem-first portability",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Usable, but photos are too tied to the app's behavior and sync model",
+          "color": "yellow"
+        },
+        "Immich + Nextcloud": {
+          "text": "Good if originals remain on plain storage, but adds another app-specific layer",
+          "color": "yellow"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Good if PhotoPrism is read-only and documents stay separate",
+          "color": "green"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best alignment: plain files, sidecars, and a disposable browsing DB",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Still portable, but easier to create duplicated or circular workflows",
+          "color": "yellow"
+        }
+      }
+    },
+    {
+      "name": "Clear phased rollout",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Simple start, but likely leads to re-architecture later",
+          "color": "yellow"
+        },
+        "Immich + Nextcloud": {
+          "text": "Clear enough, but front-loads mobile sync before it is actually needed",
+          "color": "yellow"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Clear rollout, but leaves the curation problem unresolved",
+          "color": "yellow"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Strong staged plan with a small server core and workstation curation",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Rollout is possible, but too many first-phase concerns",
+          "color": "red"
+        }
+      }
+    },
+    {
+      "name": "Fit for the currently stated need",
+      "cells": {
+        "Nextcloud only": {
+          "text": "Too compromised on photo experience",
+          "color": "red"
+        },
+        "Immich + Nextcloud": {
+          "text": "Good if phone sync is the dominant need right now",
+          "color": "yellow"
+        },
+        "PhotoPrism + Nextcloud": {
+          "text": "Close, but incomplete without a real curation tool",
+          "color": "yellow"
+        },
+        "PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best current fit for local-only photos plus documents without overbuilding",
+          "color": "green"
+        },
+        "Immich + PhotoPrism + digiKam + Nextcloud": {
+          "text": "Best only if mobile auto-upload becomes a hard requirement now",
+          "color": "yellow"
+        }
+      }
+    }
+  ]
+}
