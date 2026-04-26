@@ -72,6 +72,24 @@ Template rules:
 - No secrets in repo — use .env (copy from .env.example)
 - VPS access via Tailscale only, no public ports
 
+## Sensitive Data Handling
+
+This repo is **public on GitHub**. Anything committed is public and stays in history forever (purging requires a force-push rewrite plus, for full removal, a GitHub Support request).
+
+Sensitive paths — never commit, never `git add -f`, never override the ignore:
+
+- `retrospect/data/` — chat archives, raw exports, knowledge base, evaluations, personal context
+- `data/`, `logs/` — runtime persistent data
+- `knowledge/`, `knowledge_base/`, `personalization/` — RAG corpora and personal profiles
+- `.env`, `.agent-profile.md` — secrets and personal config
+
+Before staging:
+
+- Never use `git add -A` or `git add .`. Stage explicit paths.
+- If a path isn't already in `.gitignore` and looks personal (transcripts, profiles, prompts derived from private chats, API keys), stop and confirm with the user before adding.
+- When in doubt run `git check-ignore -v <path>` to verify ignore coverage.
+- New sensitive directories should get an explicit `.gitignore` entry before any files land in them.
+
 ## Decision Artifacts
 
 - For high-impact or irreversible decisions, record a decision matrix in `.decisions/[name].json`.
