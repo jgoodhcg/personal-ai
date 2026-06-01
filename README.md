@@ -1,19 +1,33 @@
 # Personal AI
 
-A personal AI setup with two halves that serve different purposes:
+A personal AI setup with two **independent** halves. They are not connected today;
+understanding how they differ — and don't yet talk to each other — is the key to
+this repo.
 
 1. **Hosted chat (`/`)** — a self-hosted Open WebUI stack on a single VPS, behind
-   Tailscale-only access. This is the daily driver: every model in one place, a
-   system prompt I control, and my full chat history in a local database.
-2. **Retrospect (`retrospect/`)** — a local Python project that indexes my exported
-   chat history and reasons over it with deep personal context. This is where I go
-   for questions that need a real understanding of me, not just a fresh model.
+   Tailscale-only access. My daily driver, used to consolidate away from provider
+   chat UIs into one app: random questions, thought exploration, and the early
+   seeds of projects. Projects that get real graduate out of here into git repos
+   and CLI agentic tools on my laptop.
+2. **Retrospect (`retrospect/`)** — a laptop-only Python project (never run on the
+   VPS) that indexed an export of my **ChatGPT** history and built a knowledge base
+   from it. This is where I go for anything needing deep context about me.
 
-The two halves exist together because they're two ends of the same problem. The
-hosted chat is great at *having* conversations but has no memory or custom indexing
-over the corpus those conversations produce. Retrospect is where that corpus gets
-turned into structured, queryable self-knowledge. The long-term direction is to
-feed retrospect's insight back into the hosted chat (see *Future Direction*).
+### How they relate today (important for future agents)
+- The two halves **do not share data automatically.** Open WebUI has never been
+  exported and its database has never been read by retrospect.
+- Retrospect's corpus is a **stale, one-time ChatGPT export** — the newest chat in
+  it is several months old, since I switched to Open WebUI for daily use.
+- Retrospect produced KB documents *and* system-prompt drafts. **The only artifact
+  I actually use in Open WebUI is the system prompt.** The rest of the knowledge
+  base is currently used only by **CLI agentic tools locally** (e.g. Claude Code)
+  for deeper, personalized questions.
+
+### Where I want this to go
+An ongoing system that **continuously builds a better index and personal profile
+over time** — and lets me interact with it from either Open WebUI or a CLI agentic
+interface — instead of today's stale one-shot export plus a hand-built system
+prompt. See *Future Direction*.
 
 ---
 
@@ -52,14 +66,20 @@ The deployment side. Mostly stable; I only run it locally when changing
 
 ## Part 2 — Retrospect (Personal-Context Engine)
 
-The part that's actively growing. Fills the gap the hosted chat has: **memory and
-indexing over my accumulated chat corpus.**
+Laptop-only. Indexes my chat history to support deep-context conversations about me.
 
 ### Why it exists
-My daily chat lives in Open WebUI, but it can't remember across conversations or
-index my history. Retrospect takes exported chats (currently ChatGPT exports),
-runs them through staged extraction, and builds a knowledge base I can reason over
-with full personal context.
+Provider/chat interfaces have no durable memory or custom indexing over my history.
+Retrospect took a one-time **ChatGPT export**, ran it through staged extraction, and
+built a knowledge base I can reason over with full personal context.
+
+### What was actually done (vs. aspiration)
+- A few one-shot runs indexed and summarized the ChatGPT export and synthesized
+  **knowledge base documents** and **system-prompt drafts**.
+- **Used in production:** only the generated **system prompt**, pasted into Open WebUI.
+- **Used locally:** the KB and chat index, queried ad hoc via **CLI agentic tools**.
+- **Not yet built:** any ongoing/incremental indexing. The corpus is frozen at the
+  ChatGPT export. Open WebUI chats are *not* ingested.
 
 ### The build pipeline
 ```
@@ -68,9 +88,10 @@ raw_exports/ → chats/ → extractions/ → knowledge_base/
 Normalize exports → run extraction passes → validate against schemas → synthesize
 into the knowledge base. (Full script reference lives in `retrospect/README.md`.)
 
-### The usage loop *(new — the actual product)*
-1. **Ask** a question that needs deep context (planning, self-understanding, a decision).
-2. **Reason** — an agent works over the knowledge base in `retrospect/data/knowledge_base/`.
+### The usage loop (current, manual)
+1. **Ask** a question that needs deep context (planning, self-understanding, a decision)
+   from a CLI agentic tool on the laptop.
+2. **Reason** — the agent works over the knowledge base in `retrospect/data/knowledge_base/`.
 3. **Persist** the durable insight back into the knowledge base so it compounds.
 
 ### Where captured insight goes *(convention)*
@@ -88,7 +109,13 @@ extractions, and personal knowledge base are not.
 
 ## Future Direction
 
-Close the loop: feed retrospect's knowledge base back into the hosted Open WebUI
-(via RAG, a generated system prompt, or memory) so the daily interface gains the
-deep context it currently lacks — replacing today's manual "write a big system
-prompt by hand" process.
+Move from a **stale one-shot export + hand-built system prompt** to an **ongoing,
+compounding index and personal profile** that I can interact with from either Open
+WebUI or a CLI agentic interface. Open questions being explored:
+- How to keep the corpus current (e.g. read Open WebUI's chat DB instead of relying
+  on a months-old ChatGPT export).
+- Where the indexing/agentic work should run (laptop vs. on the VPS next to Open WebUI).
+- How insight flows back into daily use (system prompt regeneration, RAG, or an
+  agent that queries the index on demand).
+
+These are unsettled. Nothing here is wired up yet.
