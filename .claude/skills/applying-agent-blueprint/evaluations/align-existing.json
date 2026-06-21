@@ -1,0 +1,13 @@
+{
+  "skills": ["applying-agent-blueprint"],
+  "query": "Check whether this repo is aligned with the agent blueprint and fix any gaps.",
+  "files": ["AGENT_BLUEPRINT.md", "AGENTS.md", "roadmap/index.md"],
+  "expected_behavior": [
+    "Chooses the Align mode because AGENTS.md exists and references the blueprint",
+    "Runs scripts/check.sh for a structural baseline before manual review",
+    "Emits an Alignment Report in the exact [BP-ALIGN-REPORT] format with a Rule Check table",
+    "Flags any ready work unit that fails the Definition of Ready, and any work unit missing required frontmatter fields",
+    "Proposes a minimal patch plan and applies only focused, scoped edits",
+    "Re-runs check.sh after patches and reports the result"
+  ]
+}

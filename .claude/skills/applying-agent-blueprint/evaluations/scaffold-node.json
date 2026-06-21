@@ -1,0 +1,13 @@
+{
+  "skills": ["applying-agent-blueprint"],
+  "query": "Set up agent policy for this Node/TypeScript repo. It already has AGENT_BLUEPRINT.md, a .nvmrc, and a package-lock.json, but no AGENTS.md yet.",
+  "files": ["AGENT_BLUEPRINT.md", ".nvmrc", "package-lock.json", "package.json"],
+  "expected_behavior": [
+    "Chooses the Scaffold mode because AGENTS.md is absent",
+    "Detects Node from .nvmrc and uses npm ci as the lockfile-respecting setup command",
+    "Generates AGENTS.md that references AGENT_BLUEPRINT.md and stores a commit-trailer TEMPLATE with bracketed placeholders, not concrete provider/model values",
+    "Creates roadmap/index.md and roadmap/_template.md",
+    "Asks the user only for gaps it cannot detect (e.g. Never Run entries, data sensitivity) rather than inventing them",
+    "Runs scripts/check.sh and reports all checks passing"
+  ]
+}

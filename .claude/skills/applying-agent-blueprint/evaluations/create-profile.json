@@ -1,0 +1,12 @@
+{
+  "skills": ["applying-agent-blueprint"],
+  "query": "Add a user interaction profile to this blueprint project so the agent calibrates to me.",
+  "files": ["AGENT_BLUEPRINT.md", "AGENTS.md", ".gitignore"],
+  "expected_behavior": [
+    "Creates .agent-profile.md from the profile template, including the response-calibration default (conclusion-first, proportionate)",
+    "Adds .agent-profile.md to .gitignore so it stays out of version control",
+    "Asks the sample profile questions only to fill gaps it cannot infer",
+    "Records that the live conversation outranks the stored profile",
+    "Does not put personal calibration facts into AGENTS.md or AGENT_BLUEPRINT.md"
+  ]
+}

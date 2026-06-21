@@ -1,5 +1,4 @@
----
-version: "1.4.6"
+version: "2026-06-17"
 ---
 
 # Agent Blueprint
@@ -15,16 +14,44 @@ Use these IDs in alignment reports for deterministic, machine-checkable outcomes
 **MUST**
 - `BP-CORE-01` `AGENTS.md` exists and references `AGENT_BLUEPRINT.md`.
 - `BP-CORE-02` `roadmap/index.md` exists.
-- `BP-CORE-03` Work in progress lives in `roadmap/*.md` with valid frontmatter.
+- `BP-CORE-03` Work in progress lives in `roadmap/` work unit files with valid frontmatter.
 - `BP-CORE-04` Agents execute `ready` work units autonomously and self-validate before returning.
 - `BP-CORE-05` Commits happen only after explicit user approval.
 - `BP-CORE-06` Alignment responses use the required report format in this blueprint.
 - `BP-CORE-09` `AGENTS.md` stores a commit trailer template (placeholders), not concrete co-author/provider/model values.
+- `BP-CORE-11` On conflicting instructions, apply the precedence order in `[BP-PRECEDENCE]`.
 
 **SHOULD**
-- `BP-CORE-07` Keep policy lean; prefer references over duplicated rules.
+- `BP-CORE-07` Keep policy lean; prefer references over duplicated rules. See `[BP-INSTR]`.
 - `BP-CORE-08` Capture AI commit identity once per repo in `AGENTS.md` to avoid repeated prompts.
 - `BP-CORE-10` Capture user interaction profile in `AGENTS.md` on project init or alignment.
+
+---
+
+## Instruction Precedence [BP-PRECEDENCE]
+
+When instructions conflict, resolve in this order (highest wins):
+
+1. Explicit live user direction in the current session.
+2. The active roadmap work unit's scope and specification.
+3. `AGENTS.md` project policy.
+4. `AGENT_BLUEPRINT.md` defaults.
+
+Safety `[BP-SAFE]` is a gate, not a rank: destructive, irreversible, or out-of-repo actions still require confirmation even when a higher-precedence source requests them.
+
+State precedence explicitly because unresolved instruction conflicts measurably reduce instruction-following ([IFScale], arXiv:2507.11538).
+
+---
+
+## Instruction Design [BP-INSTR]
+
+How to author `AGENTS.md` and work units so agents actually follow them. Instruction-following accuracy declines as the number of active instructions rises ([IFScale]), and models attend most to the start and end of a file and least to the middle ([Lost in the Middle], arXiv:2307.03172). Write to those constraints:
+
+- `BP-INSTR-01` Keep the active instruction set small. Split rules into layered files loaded on demand; a work unit must not restate blueprint or `AGENTS.md` rules. (density)
+- `BP-INSTR-02` Order by importance. Put MUST invariants and precedence at the top of a file and easily-forgotten operational rules near the end; never bury load-bearing rules in the middle. (primacy/recency)
+- `BP-INSTR-03` One instruction, one checkable outcome. Write each rule so compliance is verifiable; prefer concrete, testable criteria over adjectives. (reduces omission under load)
+- `BP-INSTR-04` Prefer positive, specific instructions ("do X, with criterion Y"). Reserve prohibitions for named, recurring failure modes — e.g. the `Never Run` list — rather than blanket "don't." (positive + targeted-negative supervision)
+- `BP-INSTR-05` Reference over restate. Link to the canonical rule instead of copying it; duplication raises density and drifts out of sync. (reinforces `BP-CORE-07`)
 
 ---
 
@@ -34,11 +61,43 @@ Confirm before running destructive commands, installing dependencies, or taking 
 
 ---
 
+## Environment [BP-ENV]
+
+Reproducible environments prevent "works on my machine" failures. Pin versions, commit lockfiles, and document setup.
+
+### Version Pinning [BP-ENV-PIN]
+
+If the project uses a language runtime, pin the version in a file committed to the repo. Use a format that version managers read automatically:
+
+| Ecosystem | Version file | Manager(s) |
+|-----------|-------------|------------|
+| Node | `.nvmrc` or `.node-version` | nvm, fnm, volta, mise |
+| Python | `.python-version` or `pyproject.toml` `[project.requires-python]` | uv, pyenv, mise |
+| Rust | `rust-toolchain.toml` | rustup |
+| Go | `go.mod` (`go` directive) | built-in |
+| Clojure | `deps.edn` (`:deps` versions) | Clojure CLI |
+| Bun | `package.json` `engines.bun` | bun |
+| Multi-language | `.tool-versions` | mise, asdf |
+
+### Lockfiles [BP-ENV-LOCK]
+
+Commit lockfiles. They make dependency resolution deterministic across machines and CI.
+
+Common lockfiles: `package-lock.json` / `bun.lockb` / `yarn.lock`, `uv.lock` / `poetry.lock`, `Cargo.lock`, `go.sum`, `deps-lock.json` (Deno).
+
+If the ecosystem has a lockfile, commit it. When installing dependencies, use the lockfile-respecting command (e.g. `npm ci` not `npm install`, `uv sync` not `uv pip install`).
+
+### Setup Command [BP-ENV-SETUP]
+
+Document a single command (or short sequence) that bootstraps the environment from scratch. Store it in the `## Environment` section of `AGENTS.md` so agents can self-bootstrap.
+
+---
+
 ## Workflow [BP-WF]
 
 ### Operating Model [BP-WF-OPS]
 
-1. **Take direction** from a `roadmap/*.md` work unit, issue, or user request.
+1. **Take direction** from a `roadmap/` work unit file, issue, or user request.
 2. **If input is a brain dump**, create a draft work unit and clarify until scope and validation are concrete.
 3. **Execute autonomously** once scope is clear; do not stop after each small step.
 4. **Self-validate end-to-end** before returning: run required checks, create missing tests when needed, and run E2E for UI changes.
@@ -58,7 +117,7 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 ### Guardrails [BP-WF-GUARD]
 
 - Run validation after changes.
-- If a command is not on the allowlist, ask.
+- Follow the execution policy defined in `AGENTS.md`.
 - Keep changes minimal and focused; avoid unrelated improvements.
 - For critical logic changes, review `git diff` before declaring completion.
 
@@ -85,15 +144,69 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
      - DeepSeek → `DeepSeek <deepseek-ai@users.noreply.github.com>`
   3. **Tier 3 — Unknown** (provider not listed): `{Provider Name} <{github-org}@users.noreply.github.com>` — look up the provider's GitHub org. If truly unknown: `AI Agent <noreply@users.noreply.github.com>`
 - Derive `AI-Provider` and `AI-Model` from runtime context at commit time.
+- For `AI-Provider` and `AI-Model`, prefer the most specific authoritative source available in this order:
+  1. active session/runtime metadata exposed by the tool
+  2. tool-owned local config that controls the current session
+  3. visible UI labels, only if no better source is available
+- Do not down-convert a specific runtime model to a marketing label. Example: if Codex Desktop shows `GPT-5` in the UI but `~/.codex/config.toml` for the active session contains `model = "gpt-5.4"`, use `AI-Model: gpt-5.4`.
 - Include trailers when committing:
   - `Co-authored-by: [resolved name] <[resolved email]>`
   - `AI-Provider: [runtime provider name]` (optional; include only if known)
   - `AI-Product: [runtime product line]` (optional; include only if known)
   - `AI-Model: [runtime model name]` (optional; include only if known)
 
+#### Multi-Model Attribution [BP-WF-COMMIT-MULTI]
+
+When more than one AI model contributed to the work being committed, attribute all participating models.
+
+**Trigger — user-initiated:**
+- The user may request multi-model attribution in natural language. Interpret any statement that conveys "also credit model X" as a trigger — there is no required phrase. Examples:
+  - "also attribute gemini"
+  - "include claude in the attribution"
+  - "credit sonnet too, it helped earlier"
+  - "gemini helped with part of this"
+- When triggered, ask the user to confirm which model(s) to add if not already specified by name.
+
+**Trigger — agent-suggested:**
+- If the agent has evidence of a model switch during the current session (e.g., session metadata, tool context, or the user mentioning prior work with another model), the agent **may** ask:
+  > "It looks like [other model] also contributed to this work. Want me to include it in the commit attribution?"
+- Do **not** auto-add additional attribution without user confirmation.
+
+**Resolution rules:**
+- Resolve each additional model's `Co-authored-by` using the same tiered lookup (Tier 1 → 2 → 3) defined above.
+- Each attributed model gets its own `Co-authored-by` line.
+- The **primary model** (the one performing the commit) is always listed first.
+
+**Trailer format (multi-model):**
+
+```text
+Co-authored-by: Primary <primary@users.noreply.github.com>
+Co-authored-by: Secondary <secondary@users.noreply.github.com>
+AI-Provider: primary-provider, secondary-provider
+AI-Product: primary-product, secondary-product
+AI-Model: primary-model, secondary-model
+```
+
+- `AI-Provider`, `AI-Product`, and `AI-Model` are comma-separated, primary model first.
+- Deduplicate values within each trailer (e.g., if both models share a provider, list it once).
+
+**Example** — committing from OpenCode (claude-opus-4-6) after also using Gemini 2.5 Pro:
+
+```text
+Co-authored-by: Claude <claude@users.noreply.github.com>
+Co-authored-by: Gemini <google-gemini@users.noreply.github.com>
+AI-Provider: Anthropic, Google
+AI-Product: opencode, opencode
+AI-Model: claude-opus-4-6, gemini-2.5-pro
+```
+
+Note: `AI-Product` reflects the **tool**, not the model. If both models were used within OpenCode, both entries are `opencode`.
+
 ### User Profile [BP-WF-PROFILE]
 
 Calibrate agent interactions based on user context. Store in a git-ignored file (e.g., `.agent-profile.md`) referenced from `AGENTS.md`.
+
+**Response calibration (default):** Lead with the conclusion, support after. Match response length to the task — proportionate over exhaustive. The live conversation outranks the stored profile (see `[BP-PRECEDENCE]`). Store per-user specifics (response modes, explanation depth, domains) in the profile file, not here.
 
 **Prompting conditions:**
 1. **No profile exists** → Prompt to create one
@@ -138,6 +251,32 @@ Agent-specific files (`CLAUDE.md`, `GEMINI.md`, etc.) are optional and should be
 
 ---
 
+## Versioning [BP-VERSION]
+
+Use date-based versions, not semantic versioning.
+
+**Format:** `YYYY-MM-DD` with an optional `.N` suffix for same-day releases.
+
+```
+2026-03-07        ← first release of the day
+2026-03-07.1      ← second release same day
+2026-03-07.2      ← third, etc.
+```
+
+**Rationale:**
+- A version number should tell you **when**, not make a speculative promise about compatibility.
+- Semver encodes intent ("this is a breaking change") but that intent is unreliable — accidental breakage ships as patches, and major bumps happen for trivial reasons.
+- Date versions are honest, monotonically increasing, and require zero decision overhead. There is no debate about whether a change is "major" or "minor."
+- This aligns with the approach used by Babashka, several Clojure libraries, and other projects that favor simplicity over ceremony.
+
+**Rules:**
+- The frontmatter `version` field in this blueprint and companion documents uses this scheme.
+- `AGENTS.md` and other files that reference the blueprint version should reflect the same date string.
+- When adopting this blueprint in a new project, date-based versioning is the recommended default. Teams with existing conventions may keep them, but should document the choice.
+- Agents should not spend time debating version bumps. Update the date, move on.
+
+---
+
 ## Alignment Contract [BP-ALIGN]
 
 - `AGENTS.md` is the project policy entrypoint and references this blueprint.
@@ -161,7 +300,7 @@ Use this format exactly:
 # Alignment Report
 
 ## Blueprint
-- Version: [e.g. 1.3.0]
+- Version: [e.g. 2026-03-07]
 
 ## Rule Check
 | Rule ID | Status (PASS/FAIL) | Evidence | Action |
@@ -202,6 +341,13 @@ Follows `AGENT_BLUEPRINT.md` (version: [BLUEPRINT_VERSION])
 - [Database]
 - [Infra/deploy target]
 
+## Environment
+
+- Version manager: [e.g. uv, nvm, mise, rustup, or "built-in"]
+- Version file: [e.g. `.python-version`, `.nvmrc`, `rust-toolchain.toml`]
+- Lockfile: [e.g. `uv.lock`, `package-lock.json`, `Cargo.lock`]
+- Setup: `[single bootstrap command, e.g. "uv sync", "npm ci", "cargo build"]`
+
 ## Commit Trailer Template
 
 Store a template, not concrete runtime values.
@@ -220,9 +366,11 @@ Template rules:
   - Claude Code -> `claude`
   - Gemini CLI -> `gemini`
   - OpenCode -> `opencode` (regardless of underlying provider/model, including z.ai)
-- Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
+- Determine `AI_PROVIDER` and `AI_MODEL` from the most specific authoritative runtime metadata available. Prefer active session metadata, then tool-owned local config, then UI display labels only as a last resort.
+- Example: in Codex Desktop, if the visible label is `GPT-5` but `~/.codex/config.toml` records `model = "gpt-5.4"` for the active session, fill `AI_MODEL` with `gpt-5.4`.
 - Resolve `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` from the **model name** using the tiered resolution order defined in `[BP-WF-COMMIT]`.
 - Fill this template at commit time; do not persist filled values in `AGENTS.md`.
+- For multi-model commits, see `[BP-WF-COMMIT-MULTI]` — add one `Co-authored-by` line per model and comma-separate the other trailers.
 
 ## Validation Commands
 
@@ -233,13 +381,14 @@ Template rules:
 | 3 | `[test]` | Before completing work |
 | 4 | `[e2e]` | After UI changes |
 
-## Allowed Commands
+## Execution Modes
 
-- `[command]` — [what it does]
-
-## Require Confirmation
-
-- `[command]` — [why]
+- `roadmap/` is the canonical planning surface.
+- If roadmap work unit files use numeric IDs, document the digit width used by this repo in `AGENTS.md` (blueprint default: 3).
+- Validation commands are defined above and applied when relevant.
+- Keep changes minimal and scoped to the requested work unit.
+- Require user confirmation before `git commit`, installs, upgrades, or network calls with external side effects.
+- It is acceptable to stop for clarification when scope is ambiguous.
 
 ## Never Run
 
@@ -302,9 +451,32 @@ This is the core execution model. Work units are prompts for autonomous agent wo
 roadmap/
 ├── index.md       # Project overview and directory of work units
 ├── _template.md   # Starting point for new work units
-├── *.md           # Individual work unit files (with frontmatter)
+├── [ID]-[slug].md # Individual work unit files (with frontmatter)
 └── archived/      # Completed or dropped work units
 ```
+
+Non-work-unit helper files such as `index.md` and `_template.md` remain unnumbered.
+
+### Work Unit Filenames [BP-RM-FILES]
+
+Roadmap work unit files should use `[ID]-[slug].md`.
+
+- `ID` is a stable numeric identifier used for reference and sorting only.
+- Assign IDs sequentially and never change them once assigned.
+- IDs do not encode priority, status, or anything beyond initial creation-order assignment.
+- Zero-padding is required for lexical sorting.
+- Default width is 3 digits.
+- Repos may choose a different digit width and should document it in `AGENTS.md`.
+
+### Numbering Alignment Guidance [BP-RM-FILES-ALIGN]
+
+When adopting numbered work unit filenames in an existing repo:
+
+1. Assign IDs by `created` date when present.
+2. If `created` is missing, preserve the current logical or file order.
+3. Rename work unit files in both `roadmap/` and `roadmap/archived/`.
+4. Update internal references after renaming.
+5. Do not renumber existing work units after IDs are assigned.
 
 ### Work Unit Frontmatter [BP-RM-FRONTMATTER]
 
@@ -381,7 +553,7 @@ goal: "One sentence: what this project exists to achieve."
 
 ## Work Units
 
-See individual `*.md` files in this directory. Use `draft` while clarifying and `ready` when autonomous execution can begin.
+See individual `[ID]-[slug].md` files in this directory. Use `draft` while clarifying and `ready` when autonomous execution can begin.
 
 ## Quick Ideas
 
