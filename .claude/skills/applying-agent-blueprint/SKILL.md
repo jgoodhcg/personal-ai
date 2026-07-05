@@ -11,7 +11,7 @@ Core principle while generating files: **reference the blueprint, do not restate
 
 ## Prerequisite
 
-`AGENT_BLUEPRINT.md` must exist at the repo root. If it does not, copy it from the Agent Blueprint source before continuing (`[BP-ADOPT]` step 1). Everything below assumes it is present.
+`AGENT_BLUEPRINT.md` must exist at the repo root, with its `references/` companion directory alongside it (commit attribution, user profile guidance, work unit example). If either is missing, copy them from the Agent Blueprint source before continuing (`[BP-ADOPT]` steps 1–2). Everything below assumes they are present.
 
 ## Decide the mode
 

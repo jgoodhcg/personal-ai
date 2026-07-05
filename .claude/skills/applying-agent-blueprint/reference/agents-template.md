@@ -38,8 +38,8 @@ AI-Model: [AI_MODEL]
 
 - `AI_PRODUCT_LINE` ∈ `codex | claude | gemini | opencode`, derived from the current tool.
 - `AI_PROVIDER` / `AI_MODEL`: runtime-derived at commit time (prefer session metadata > tool config > UI label).
-- `AI_PRODUCT_NAME` / `AI_PRODUCT_EMAIL`: resolved from the model name via the tiered lookup in `AGENT_BLUEPRINT.md` `[BP-WF-COMMIT]`.
-- Fill at commit time; never persist filled values here. Multi-model commits: see `[BP-WF-COMMIT-MULTI]`.
+- `AI_PRODUCT_NAME` / `AI_PRODUCT_EMAIL`: resolved from the model name via the tiered lookup in `references/commit-attribution.md`.
+- Fill at commit time; never persist filled values here. Multi-model commits: see `references/commit-attribution.md`.
 
 ## Validation Commands
 

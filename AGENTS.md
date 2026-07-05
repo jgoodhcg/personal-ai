@@ -1,6 +1,6 @@
 # AGENTS
 
-Follows `AGENT_BLUEPRINT.md` (version: 2026-06-17)
+Follows `AGENT_BLUEPRINT.md` (version: 2026-07-04)
 
 ## Project Overview
 
@@ -13,9 +13,16 @@ Self-hosted AI platform on a single VPS. Open WebUI for chat interface, SSH acce
 - SQLite (Open WebUI persistent data)
 - Single VPS deployment with Tailscale-only access
 
+## Environment
+
+- Version manager: Docker Compose
+- Version file: `docker-compose.yml`
+- Lockfile: none
+- Setup: `docker compose config`
+
 ## Commit Trailer Template
 
-Store a template, not concrete runtime values.
+Store a template, not concrete runtime values. Fill it at commit time using `references/commit-attribution.md`.
 
 ```text
 Co-authored-by: [AI_PRODUCT_NAME] <[AI_PRODUCT_EMAIL]>
@@ -23,17 +30,6 @@ AI-Provider: [AI_PROVIDER]
 AI-Product: [AI_PRODUCT_LINE]
 AI-Model: [AI_MODEL]
 ```
-
-Template rules:
-- `AI_PRODUCT_LINE` must be one of: `codex|claude|gemini|opencode`.
-- Determine `AI_PRODUCT_LINE` from current session:
-  - Codex or ChatGPT coding agent -> `codex`
-  - Claude Code -> `claude`
-  - Gemini CLI -> `gemini`
-  - OpenCode -> `opencode` (regardless underlying provider/model, including z.ai)
-- Determine `AI_PROVIDER` and `AI_MODEL` from runtime model metadata.
-- Resolve `AI_PRODUCT_NAME` and `AI_PRODUCT_EMAIL` from the **model name** using the tiered resolution order defined in `AGENT_BLUEPRINT.md` section `Commits [BP-WF-COMMIT]`.
-- Fill this template at commit time; do not persist filled values in `AGENTS.md`.
 
 ## Validation Commands
 
@@ -72,6 +68,31 @@ Template rules:
 - No secrets in repo — use .env (copy from .env.example)
 - VPS access via Tailscale only, no public ports
 
+## Knowledge Base
+
+Tool: Roam Research.
+
+When asked to generate a Roam summary or thread, use the `roam-thread-summary` skill. The user pastes AI-assisted readings, threads, and summaries into Roam as nested bullet outlines. When asked to produce Roam content, output a copy-paste-ready bullet tree and preserve a local copy under `retrospect/data/knowledge_base/` (gitignored — see Sensitive Data Handling).
+
+### Attribution / parent block
+
+Nest AI-generated thread summaries under this parent block:
+
+- `- [[ai-thread]] [[<model-id>]] [[personal-ai]]`
+
+Use the exact runtime model in `<model-id>`. Only add tool refs (`[[codex-cli]]`, `[[claude-code]]`, `[[gemini-cli]]`, `[[opencode]]`) or other `[[Page Name]]` refs when the user asks.
+
+### Tarot reading artifacts
+
+The user keeps tarot readings in Roam with a stable convention — mirror it:
+
+- Header block tags: `[[tarot]]`, the moon phase (e.g. `[[moon/full]]`), a source/thread marker, and the model — e.g. `- [[tarot]] [[moon/full]] [[chatgpt-thread]] [[gpt-5.2]] 04:02`. For agent-generated readings, use `[[ai-thread]] [[<model-id>]] [[personal-ai]]` in place of the chat-thread/model tags. Append an `HH:MM` timestamp when known.
+- Card references use Roam path refs:
+  - Minors: `[[tarot/card/<suit>/<rank>]]` — suits `wand` | `cup` | `sword` | `pentacle`; ranks `ace`, `two`…`ten`, `page`, `knight`, `queen`, `king`.
+  - Majors: `[[tarot/card/<name>]]` — e.g. `[[tarot/card/sun]]`, `[[tarot/card/magician]]`.
+  - Mark reversed cards with the word `reversed` after the ref, not in the path.
+- Typical nested sections (use what fits): **Spread** (placement names + what each represents), **Cards drawn**, the user's own interpretation, the assistant interpretation/synthesis, and a **Core takeaway**. Free-form sections (*Meta-insight*, *Placement conundrum*, etc.) are welcome when relevant.
+
 ## Sensitive Data Handling
 
 This repo is **public on GitHub**. Anything committed is public and stays in history forever (purging requires a force-push rewrite plus, for full removal, a GitHub Support request).
@@ -100,8 +121,10 @@ Before staging:
 
 ## References
 
-- For operating model, see `AGENT_BLUEPRINT.md`
-- For decision records, see `AGENT_BLUEPRINT.md` section `Decision Artifacts [BP-DECISIONS]`
+- Blueprint policy: `AGENT_BLUEPRINT.md`
+- Commit attribution: `references/commit-attribution.md`
+- User profile guidance: `references/user-profile.md`
+- Example ready work unit: `references/work-unit-example.md`
 - For executable work units, see `roadmap/index.md`
 - For deployment and usage context, see `README.md`
 
