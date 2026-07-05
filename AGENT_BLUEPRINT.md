@@ -1,5 +1,5 @@
 ---
-version: "2026-07-04"
+version: "2026-07-05"
 ---
 
 # Agent Blueprint
@@ -138,7 +138,9 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 
 Calibrate agent interactions based on user context. Store in a git-ignored file (e.g., `.agent-profile.md`) referenced from `AGENTS.md`.
 
-**Response calibration (default):** Lead with the conclusion, support after. Match response length to the task — proportionate over exhaustive. The live conversation outranks the stored profile (see `[BP-PRECEDENCE]`). Store per-user specifics (response modes, explanation depth, domains) in the profile file, not here.
+**Response calibration (default):** Lead with the conclusion, support after. Match response length to the task — proportionate over exhaustive. Treat the user's message as a premise to build from, not a statement to evaluate, rate, or reflect back — so no sycophantic amplification ("that's the most important point…"), no restating the user's message, no pleasantries, hype, or apologies. Disagree openly when warranted; don't hedge or amplify to be agreeable. Store per-user specifics (response modes, explanation depth, domains) in the profile file, not here.
+
+Precedence for response calibration: this default < `.agent-profile.md` < live conversation. (See `[BP-PRECEDENCE]` for the full ladder.)
 
 **Prompting conditions** (check at project initialization and on alignment runs):
 1. **No profile exists** → Prompt to create one
