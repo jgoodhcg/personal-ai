@@ -68,6 +68,22 @@ AI-Model: [AI_MODEL]
 - No secrets in repo — use .env (copy from .env.example)
 - VPS access via Tailscale only, no public ports
 
+## CLI Chat Mining
+
+Local CLI agent session logs are mined into `retrospect/data/agent_chats.db`
+(gitignored, sensitive). Rules:
+
+- Refresh by running each `retrospect/scripts/mine_*.py` with `python3` from
+  `retrospect/scripts/`; all are idempotent and safe to rerun. `chat_db.py` is a
+  shared module, not an entrypoint.
+- Never make API/LLM calls from the mining scripts — parsing is mechanical only.
+- Read-only toward source logs (`~/.claude`, `~/.codex`, `~/.local/share/opencode`,
+  `~/.gemini`) — never modify or delete them.
+- Do not remove `cleanupPeriodDays` from `~/.claude/settings.json`; it prevents
+  Claude Code from deleting old transcripts.
+- Query results from the DB contain personal chat content — treat as sensitive;
+  never paste bulk content into committed files.
+
 ## Knowledge Base
 
 Tool: Roam Research.
@@ -99,7 +115,7 @@ This repo is **public on GitHub**. Anything committed is public and stays in his
 
 Sensitive paths — never commit, never `git add -f`, never override the ignore:
 
-- `retrospect/data/` — chat archives, raw exports, knowledge base, evaluations, personal context
+- `retrospect/data/` — chat archives, raw exports, knowledge base, evaluations, personal context, mined CLI chat DB (`agent_chats.db`)
 - `data/`, `logs/` — runtime persistent data
 - `knowledge/`, `knowledge_base/`, `personalization/` — RAG corpora and personal profiles
 - `.env`, `.agent-profile.md` — secrets and personal config
@@ -134,6 +150,7 @@ Before staging:
 - `.env` — API keys and secrets (not tracked)
 - `knowledge/` — Markdown files for RAG (gitignored, sensitive)
 - `scripts/setup.sh` — VPS provisioning script
+- `retrospect/scripts/chat_db.py` + `mine_*.py` — CLI agent chat mining into `retrospect/data/agent_chats.db`
 
 ## User Profile
 

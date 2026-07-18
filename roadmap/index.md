@@ -21,6 +21,7 @@ The platform's shape is emerging through use. What's clear: self-hosted, privacy
 - `open-terminal-worker.md` (`draft`): evaluate Open Terminal as a tailnet-only remote worker for chat-driven shell access, repo iteration, and private app previews.
 - `open-responses-connection.md` (`draft`): test a dedicated Open Responses connection and decide whether OpenRouter works or direct provider access is required.
 - `chat-archive-processing.md` (`ready`): process exported chat histories into RAG knowledge base with psychological and narrative analysis.
+- `cli-chat-mining.md` (`active`): mine local CLI agent session logs (Claude Code, Codex, OpenCode, Gemini) into one SQLite database for analysis.
 - `task-runner.md` (`draft`): scheduled automation jobs after foundation is stable.
 - `dashboard.md` (`draft`): optional visibility UI for task runs.
 - `custom-fork.md` (`draft`): only if upstream Open WebUI cannot meet requirements.

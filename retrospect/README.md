@@ -19,6 +19,46 @@
 - `schemas/` contains the JSON Schemas that define the extraction contract
 - `config/model_catalog.json` tracks the current model shortlist, pricing, and resolution notes for renamed or missing SKUs
 
+## CLI Agent Chat Mining
+
+A second corpus alongside the hosted-chat exports: local CLI agent session logs
+(Claude Code, Codex, OpenCode, Gemini CLI) mined into one SQLite database at
+`data/agent_chats.db` (gitignored). One idempotent script per tool plus a shared
+module — no API/LLM calls, purely mechanical parsing:
+
+- `scripts/chat_db.py` — shared schema (`sessions`, `messages`, FTS5 index,
+  ingest ledger) and upsert helpers; not run directly
+- `scripts/mine_claude.py` — `~/.claude/projects/**/*.jsonl` (titles, git
+  branch, per-message model, token usage)
+- `scripts/mine_codex.py` — `~/.codex/sessions/` (dated JSONL + 2025-era legacy
+  flat JSON)
+- `scripts/mine_opencode.py` — row-copy from OpenCode's own SQLite DB (titles,
+  tokens, cost)
+- `scripts/mine_gemini.py` — `~/.gemini/tmp/*/chats/`; project paths recovered
+  by sha256-matching `~/.gemini/projects.json` entries
+- `scripts/mine_claude_legacy.py` — recovers pre-cleanup Claude Code history:
+  full 2025 sessions from the v0.2.x `~/.claude/__store.db`, plus prompt-only
+  day-sessions from `~/.claude/history.jsonl` for the deleted window (flagged
+  `meta.prompt_only`)
+
+Refresh everything (safe to rerun anytime; unchanged files are skipped):
+
+```bash
+cd retrospect/scripts
+for s in mine_claude mine_codex mine_opencode mine_gemini mine_claude_legacy; do
+  python3 $s.py
+done
+```
+
+Schema notes: `sessions` carries tool, provider, model, project path,
+`is_worktree`, git branch, title, timestamps, token totals, and cost (OpenCode
+only). `messages` keeps flattened text plus the verbatim source record in `raw`,
+with `is_meta`/`is_sidechain` flags for filtering. Full-text search via
+`messages_fts` (`SELECT ... FROM messages_fts WHERE messages_fts MATCH '...'`).
+Claude Code transcript cleanup is disabled via `cleanupPeriodDays` in
+`~/.claude/settings.json` so the source logs stop expiring. See
+`roadmap/cli-chat-mining.md` for design and history.
+
 ## Data Directory
 
 All working data for this subproject lives under `retrospect/data/`. It is intentionally separated into pipeline stages.
@@ -59,6 +99,10 @@ All working data for this subproject lives under `retrospect/data/`. It is inten
 - `data/reports/`
   Generated cost-analysis markdown reports and other local analysis artifacts.
   This now includes the static HTML model-panel review report.
+
+- `data/agent_chats.db`
+  Unified SQLite database of local CLI agent sessions (see *CLI Agent Chat
+  Mining* above). Rebuildable from the source logs at any time.
 
 ### Extraction Output Layout
 

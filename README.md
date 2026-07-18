@@ -78,8 +78,16 @@ built a knowledge base I can reason over with full personal context.
   **knowledge base documents** and **system-prompt drafts**.
 - **Used in production:** only the generated **system prompt**, pasted into Open WebUI.
 - **Used locally:** the KB and chat index, queried ad hoc via **CLI agentic tools**.
-- **Not yet built:** any ongoing/incremental indexing. The corpus is frozen at the
-  ChatGPT export. Open WebUI chats are *not* ingested.
+- **Not yet built:** any ongoing/incremental indexing of *hosted* chats. That
+  corpus is frozen at the ChatGPT export. Open WebUI chats are *not* ingested.
+- **New (July 2026):** a second, refreshable corpus — **CLI agent chat mining**.
+  Local session logs from Claude Code, Codex, OpenCode, and Gemini CLI are mined
+  into one SQLite database (`retrospect/data/agent_chats.db`) by per-tool scripts
+  in `retrospect/scripts/` (`mine_*.py`). Unified schema (tool, provider, model,
+  project, tokens, worktree flag, full message text + FTS), idempotent reruns,
+  plus a legacy recovery path for Claude Code history that predates its
+  transcript cleanup. Not yet scheduled; refreshed by rerunning the scripts.
+  See `retrospect/README.md` and `roadmap/cli-chat-mining.md`.
 
 ### The build pipeline
 ```
