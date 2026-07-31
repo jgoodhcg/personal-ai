@@ -47,6 +47,9 @@ The deployment side. Mostly stable; I only run it locally when changing
   interactive Tailscale login)
 - `docker compose config` / `up --dry-run` / `ps` to validate
 - `docker compose up -d` / `down` / `logs -f chat` / `pull` for routine ops
+- Follow [`docs/vps-maintenance.md`](docs/vps-maintenance.md) for Ubuntu updates,
+  disk monitoring, Docker image cleanup, application updates, and recovery from
+  `no space left on device`.
 
 ### First Run
 - Tailscale auth key vs. interactive login; device approval notes
