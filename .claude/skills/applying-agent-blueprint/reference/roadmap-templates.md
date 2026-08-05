@@ -72,4 +72,4 @@ priority: high | medium | low
 
 ## Definition of Ready
 
-A unit may be `ready` only when Intent, Specification, Validation, Scope, and Context are concrete and Open Questions is empty (`[BP-RM-DOR]`). Otherwise keep it `draft`.
+A unit can be `ready` only when Intent, Specification, Validation, Scope, and Context are concrete and Open Questions is empty (`[BP-RM-DOR]`). Otherwise keep it `draft`.

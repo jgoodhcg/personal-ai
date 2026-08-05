@@ -1,6 +1,6 @@
 # AGENTS
 
-Follows `AGENT_BLUEPRINT.md` (version: 2026-07-05)
+Follows `AGENT_BLUEPRINT.md` (version: 2026-08-04.1)
 
 ## Project Overview
 
@@ -62,6 +62,8 @@ AI-Model: [AI_MODEL]
 - Commands that expose ports publicly (only Tailscale access)
 
 ## Project-Specific Rules
+
+- `BP-WRITE-04` exemptions: none.
 
 - All persistent data lives in `data/` (gitignored)
 - Knowledge base in `knowledge/` is version controlled
@@ -125,7 +127,7 @@ Before staging:
 - Never use `git add -A` or `git add .`. Stage explicit paths.
 - If a path isn't already in `.gitignore` and looks personal (transcripts, profiles, prompts derived from private chats, API keys), stop and confirm with the user before adding.
 - When in doubt run `git check-ignore -v <path>` to verify ignore coverage.
-- New sensitive directories should get an explicit `.gitignore` entry before any files land in them.
+- New sensitive directories must get an explicit `.gitignore` entry before any files land in them.
 
 ## Decision Artifacts
 

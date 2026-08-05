@@ -1,5 +1,5 @@
 ---
-version: "2026-07-05"
+version: "2026-08-04.1"
 ---
 
 # Agent Blueprint
@@ -10,7 +10,7 @@ Reference for consistent agent behavior across projects. Copy into any project a
 
 ## Core Invariants
 
-Use these IDs in alignment reports for deterministic, machine-checkable outcomes.
+Use these IDs in alignment reports for deterministic, machine-checkable outcomes. A **MUST** rule fails an alignment report when unmet. A **SHOULD** rule is a recommended default; a project can decline it and record the reason in `AGENTS.md`.
 
 **MUST**
 - `BP-CORE-01` `AGENTS.md` exists and references `AGENT_BLUEPRINT.md`.
@@ -21,6 +21,7 @@ Use these IDs in alignment reports for deterministic, machine-checkable outcomes
 - `BP-CORE-06` Alignment responses use the required report format in this blueprint.
 - `BP-CORE-09` `AGENTS.md` stores a commit trailer template (placeholders), not concrete co-author/provider/model values.
 - `BP-CORE-11` On conflicting instructions, apply the precedence order in `[BP-PRECEDENCE]`.
+- `BP-CORE-12` Completion reports name the checks that ran and the checks that did not (`[BP-VERIFY]`).
 
 **SHOULD**
 - `BP-CORE-07` Keep policy lean; prefer references over duplicated rules. A rule that restates blueprint or `AGENTS.md` text verbatim is a FAIL in alignment reports. See `[BP-INSTR]`.
@@ -63,6 +64,37 @@ How to author `AGENTS.md` and work units so agents actually follow them. Instruc
 - `BP-INSTR-06` Write rules in the imperative with the trigger condition first: "When X, do Y." Condition-action phrasing makes the rule matchable at the moment it applies. (retrieval at point of use)
 - `BP-INSTR-07` For any format agents must produce, include one filled-in example alongside the schema or template. A worked example constrains output better than field descriptions alone. (few-shot > schema)
 - `BP-INSTR-08` Keep rationale out of the instruction stream. Justification aimed at humans (history, comparisons, persuasion) belongs in a README or companion doc; keep at most one line of "why" per rule. (density)
+- `BP-INSTR-09` One word, one meaning. Use one term per concept across this blueprint, `AGENTS.md`, and work units. Three terms are fixed here: **validate** = run the project validation commands; **confirm** = get user approval; **check** = evaluate a stated condition. An agent reads three verbs as three operations. (vocabulary discipline)
+- `BP-INSTR-10` Write requirements with `must`, `can`, or `will`. In a rule body, "should" reads as optional and "may/might/could" read as speculative. Write `must` for a requirement, `can` for a permission, or delete the rule. `SHOULD` stays valid as the normative label in `Core Invariants`. (removes hedge ambiguity)
+
+Source for `BP-INSTR-09` and `BP-INSTR-10`: ASD-STE100 Simplified Technical English (Issue 9, 2025), adapted for agent instructions via [SimpleEnglish](https://github.com/AminBlg/SimpleEnglish) — AminBlg, MIT. `BP-INSTR-03` and `BP-INSTR-06` restate that standard's "one instruction per sentence" and "condition before command" rules, derived here independently. ASD-STE100 is a registered trademark of ASD; no specification or dictionary text is reproduced. Full bibliography: `references/sources.md` (`[18]`, `[19]`).
+
+---
+
+## Authored Artifacts [BP-WRITE]
+
+Prose that an agent writes into the repository. `[BP-INSTR]` governs instruction files. `[BP-WF-PROFILE]` governs replies to the user. This section governs everything else.
+
+- `BP-WRITE-01` Write documentation, code comments, commit messages, PR descriptions, and error text in the factual register defined in `[BP-WF-PROFILE]`.
+- `BP-WRITE-02` Commit messages take an imperative subject line and a body in simple past. State what changed and why. Do not state intent ("this commit aims to").
+- `BP-WRITE-03` Leave code, identifiers, file paths, and quoted error text exact. They are names, not prose.
+- `BP-WRITE-04` Exempt human-facing persuasive text: launch posts, brand writing, and any marketing section of a `README`. The factual register deletes persuasion by design. Record a project's exemptions in `AGENTS.md`.
+
+Source: `references/sources.md` (`[18]`, `[19]`).
+
+---
+
+## Verifiability [BP-VERIFY]
+
+An agent produces work faster than a user can check it. Users follow incorrect AI advice most of the time when checking is expensive (`[20]`, `[22]`), so lower the cost to check instead of adding friction — friction works, and users turn it off (`[21]`).
+
+- `BP-VERIFY-01` Anchor every factual claim to something the user can check: `file:line`, the exact command, the diff, or the quoted output.
+- `BP-VERIFY-02` Separate what you verified from what you inferred. Name the checks you ran and the checks you skipped.
+- `BP-VERIFY-03` Report failures and gaps in full. State what you did not do, and why.
+- `BP-VERIFY-04` Keep calibrated uncertainty. Do not convert `may` into `will` to sound decisive. False confidence suppresses user scrutiny (`[23]`).
+- `BP-VERIFY-05` Before an irreversible or high-impact action, state the disconfirming case: what would make this the wrong move, and what the user can look at to decide. Gate this to the actions in `[BP-SAFE]`. Do not apply it to routine turns (`[21]`).
+
+Numbered citations resolve in `references/sources.md`.
 
 ---
 
@@ -95,6 +127,15 @@ If the ecosystem has a lockfile, commit it. When installing dependencies, use th
 ### Setup Command [BP-ENV-SETUP]
 
 Document a single command (or short sequence) that bootstraps the environment from scratch. Store it in the `## Environment` section of `AGENTS.md` so agents can self-bootstrap.
+
+### Web Server Port [BP-ENV-PORT]
+
+For web app projects, the dev server must resolve its listening port with this precedence:
+
+1. **Explicit override** (e.g. `--port`) — use it; if unavailable, error out. A user-specified port is a hard requirement, not a suggestion.
+2. **Default port** — if no override, try the project's configured default; if unavailable, fall back to an open port.
+
+Always print the chosen port so the user (and agent) knows where to connect. Document the default port and the override flag in the `## Environment` section of `AGENTS.md`.
 
 ---
 
@@ -130,6 +171,7 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 
 - Commit only after user approval.
 - Before committing, present: proposed commit message, files included, and validation results.
+- Write the message per `[BP-WRITE]`: imperative subject, body in simple past.
 - Read the commit trailer template from `AGENTS.md`; if missing, ask once before the first commit in a repo.
 - Never persist runtime values (`Co-authored-by`, `AI-Provider`, `AI-Product`, `AI-Model`) in `AGENTS.md`; fill them at commit time from session metadata.
 - When filling trailers, resolve co-author identity, provider/model values, and multi-model attribution per `references/commit-attribution.md` (copied alongside this blueprint). When more than one model contributed, attribute all of them per that reference — never auto-add a second model without user confirmation.
@@ -138,7 +180,9 @@ Work through the validation hierarchy. Escalate only when lower levels pass.
 
 Calibrate agent interactions based on user context. Store in a git-ignored file (e.g., `.agent-profile.md`) referenced from `AGENTS.md`.
 
-**Response calibration (default):** Lead with the conclusion, support after. Match response length to the task — proportionate over exhaustive. Treat the user's message as a premise to build from, not a statement to evaluate, rate, or reflect back — so no sycophantic amplification ("that's the most important point…"), no restating the user's message, no pleasantries, hype, or apologies. Disagree openly when warranted; don't hedge or amplify to be agreeable. Store per-user specifics (response modes, explanation depth, domains) in the profile file, not here.
+**Response calibration (default):** Lead with the conclusion, support after. Match response length to the task — proportionate over exhaustive. Treat the user's message as a premise to build from, not a statement to evaluate, rate, or reflect back — so no sycophantic amplification ("that's the most important point…"), no restating the user's message, no pleasantries, hype, or apologies. Disagree openly when warranted; don't hedge or amplify to be agreeable. Store per-user specifics (length contract, mode triggers, explanation depth, domains) in the profile file, not here.
+
+**Register (default):** Length and register are independent axes. Length follows the task. Register follows the content. Write factual passages — code explanations, results, steps, findings, errors — in the style `[BP-INSTR]` requires: short sentences, one instruction each, condition before command, `must`/`can`/`will`. Write deliberative passages — judgment, tradeoffs, disagreement, uncertainty — in plain prose, and keep `may`/`might`/`could` there, because those words carry the calibration. A reply can contain both. Strip filler from both.
 
 Precedence for response calibration: this default < `.agent-profile.md` < live conversation. (See `[BP-PRECEDENCE]` for the full ladder.)
 
@@ -154,12 +198,12 @@ Profile dimensions, interview questions, and calibration guidance live in `refer
 ## Adoption [BP-ADOPT]
 
 1. Copy this file as `AGENT_BLUEPRINT.md`.
-2. Copy the `references/` directory alongside it (commit attribution, user profile guidance, work unit example).
+2. Copy the `references/` directory alongside it (commit attribution, user profile guidance, work unit example, sources).
 3. Create `AGENTS.md` using the template below.
 4. Create `roadmap/index.md`.
 5. Optionally create agent-specific wrappers (`CLAUDE.md`, `GEMINI.md`, etc.) using the wrapper template.
 
-Agent-specific files (`CLAUDE.md`, `GEMINI.md`, etc.) are optional and should be thin pointers to `AGENTS.md`.
+Agent-specific files (`CLAUDE.md`, `GEMINI.md`, etc.) are optional. When you create one, keep it a thin pointer to `AGENTS.md`.
 
 ---
 
@@ -179,9 +223,9 @@ Date versions are honest, monotonically increasing, and require zero decision ov
 
 **Rules:**
 - The frontmatter `version` field in this blueprint and companion documents uses this scheme.
-- `AGENTS.md` and other files that reference the blueprint version should reflect the same date string.
-- When adopting this blueprint in a new project, date-based versioning is the recommended default. Teams with existing conventions may keep them, but should document the choice.
-- Agents should not spend time debating version bumps. Update the date, move on.
+- `AGENTS.md` and other files that reference the blueprint version must carry the same date string.
+- When you adopt this blueprint in a new project, use date-based versioning. A team with an existing convention can keep it, and must record that choice in `AGENTS.md`.
+- Do not debate version bumps. Update the date, move on.
 
 ---
 
@@ -292,6 +336,7 @@ AI-Model: [AI_MODEL]
 ## Project-Specific Rules
 
 - [constraints, data sensitivity, architectural boundaries]
+- [`BP-WRITE-04` exemptions: files or sections that carry persuasive voice, or "none"]
 
 ## Decision Artifacts
 
@@ -354,14 +399,14 @@ Non-work-unit helper files such as `index.md` and `_template.md` remain unnumber
 
 ### Work Unit Filenames [BP-RM-FILES]
 
-Roadmap work unit files should use `[ID]-[slug].md`.
+Roadmap work unit files must use `[ID]-[slug].md`.
 
 - `ID` is a stable numeric identifier used for reference and sorting only.
 - Assign IDs sequentially and never change them once assigned.
 - IDs do not encode priority, status, or anything beyond initial creation-order assignment.
 - Zero-padding is required for lexical sorting.
 - Default width is 3 digits.
-- Repos may choose a different digit width and should document it in `AGENTS.md`.
+- A repo can use a different digit width, and must record that width in `AGENTS.md`.
 
 ### Numbering Alignment Guidance [BP-RM-FILES-ALIGN]
 
@@ -415,7 +460,7 @@ When aligning older projects:
 | Legacy Status | New Status | Migration Rule |
 |---|---|---|
 | `idea` | `draft` | Keep open questions in `Open Questions`. |
-| `planned` | `ready` | Ensure Definition of Ready checklist passes. |
+| `planned` | `ready` | The Definition of Ready checklist must pass. |
 | `paused` | `active` | Keep status `active` and add blocked context in `Context`. |
 | `done` | `done` | No change. |
 | `dropped` | `dropped` | No change. |
@@ -448,7 +493,7 @@ goal: "One sentence: what this project exists to achieve."
 
 ## Work Units
 
-See individual `[ID]-[slug].md` files in this directory. Use `draft` while clarifying and `ready` when autonomous execution can begin.
+See individual `[ID]-[slug].md` files in this directory. Use `draft` during clarification and `ready` when autonomous execution can begin.
 
 ## Quick Ideas
 
@@ -512,7 +557,7 @@ When creating a new work unit from a brain dump:
 2. Ask clarifying questions until scope and validation are concrete.
 3. Do not extrapolate uncertain requirements; ask instead.
 4. Once questions are resolved, update status to `ready`.
-5. A `ready` work unit should be a complete prompt an agent can execute without further clarification.
+5. A `ready` work unit must be a complete prompt an agent can execute without further clarification.
 
 ### Rules
 
@@ -579,7 +624,7 @@ For each decision, add a `.json` file using `matrix-reloaded` format. Do not exe
 
 ## Knowledge Base Integration [BP-KB]
 
-Optional. For projects where AI-generated summaries should be captured in external knowledge tools (Roam Research, Obsidian, Notion, etc.).
+Optional. Use this for projects that capture AI-generated summaries in an external knowledge tool (Roam Research, Obsidian, Notion, etc.).
 
 ### Enable in AGENTS.md
 
@@ -634,7 +679,7 @@ Adapt the format for tool conventions:
 ## Design System [BP-DESIGN]
 
 For projects with visual UI, use `DESIGN_SYSTEM_GUIDE.md` to establish consistent interface patterns.
-The guide should use concrete, testable values (tokens/patterns), not only subjective descriptions.
+The guide must use concrete, testable values (tokens/patterns), not only subjective descriptions.
 
 If this project requires visual design and no design system exists:
 1. Ask the user if they want to establish a design system.

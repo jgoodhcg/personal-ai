@@ -58,6 +58,47 @@ else
   flunk "BP-CORE-09" "no commit trailer template found in AGENTS.md"
 fi
 
+# BP-ADOPT-02: the references/ companion directory landed with the blueprint.
+missing=""
+for r in commit-attribution.md user-profile.md work-unit-example.md sources.md; do
+  [ -f "$ROOT/references/$r" ] || missing="$missing $r"
+done
+if [ -z "$missing" ]; then
+  pass "BP-ADOPT-02" "references/ has all 4 companion files"
+else
+  flunk "BP-ADOPT-02" "references/ is missing:$missing"
+fi
+
+# BP-VERSION: AGENTS.md carries the same version string as the blueprint.
+bp_ver=$(sed -n 's/^version:[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$ROOT/AGENT_BLUEPRINT.md" 2>/dev/null | head -n 1)
+if [ -z "$bp_ver" ]; then
+  flunk "BP-VERSION" "no version in AGENT_BLUEPRINT.md frontmatter"
+elif [ -f "$ROOT/AGENTS.md" ] && grep -qF "$bp_ver" "$ROOT/AGENTS.md"; then
+  pass "BP-VERSION" "AGENTS.md matches blueprint version $bp_ver"
+else
+  flunk "BP-VERSION" "AGENTS.md does not carry blueprint version $bp_ver"
+fi
+
+# BP-WRITE-04: the project declares its persuasive-text exemptions, or "none".
+if [ -f "$ROOT/AGENTS.md" ] && grep -q "BP-WRITE-04" "$ROOT/AGENTS.md"; then
+  pass "BP-WRITE-04" "AGENTS.md declares its exemptions"
+else
+  flunk "BP-WRITE-04" "AGENTS.md does not declare BP-WRITE-04 exemptions (state 'none' if there are none)"
+fi
+
+# BP-INSTR-10: hedged modals in project policy. Advisory, not a gate.
+# Deliberately does not set fail: a noisy gate gets disabled, which is the
+# failure mode BP-VERIFY cites ([21]). Promote to flunk once a project is clean.
+if [ -f "$ROOT/AGENTS.md" ]; then
+  hedges=$(grep -nEc '\b(should|may|might|could)\b' "$ROOT/AGENTS.md" || true)
+  if [ "${hedges:-0}" -eq 0 ]; then
+    pass "BP-INSTR-10" "AGENTS.md has no hedged modals"
+  else
+    printf 'WARN  %-12s %s\n' "BP-INSTR-10" "$hedges line(s) in AGENTS.md use should/may/might/could:"
+    grep -nE '\b(should|may|might|could)\b' "$ROOT/AGENTS.md" | sed 's/^/               /'
+  fi
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "All structural checks passed."

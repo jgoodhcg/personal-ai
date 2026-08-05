@@ -14,8 +14,14 @@ Verify each and record PASS/FAIL with one line of evidence:
 | BP-CORE-05 | Policy states commits happen only after user approval |
 | BP-CORE-06 | Alignment responses use this report format |
 | BP-CORE-09 | `AGENTS.md` stores a trailer **template**, not concrete co-author/provider/model values |
+| BP-CORE-12 | Policy does not suppress completion reporting; the agent names checks that ran and checks that did not |
 | BP-RM-DOR | Every `ready` work unit satisfies the Definition of Ready (Intent, Specification, Validation, Scope, Context concrete; no Open Questions) |
 | BP-RM-FRONTMATTER | Frontmatter includes title, status, description, created, updated, tags, priority |
+| BP-ADOPT-02 | `references/` sits beside the blueprint with all four companion files, including `sources.md` |
+| BP-VERSION | `AGENTS.md` carries the same version string as the blueprint frontmatter |
+| BP-INSTR-09 | `AGENTS.md` and work units use one term per concept; no check/confirm/ensure rotation |
+| BP-INSTR-10 | Requirements in `AGENTS.md` and work units read `must`/`can`/`will`, not `should`/`may`/`might`/`could` |
+| BP-WRITE-04 | `AGENTS.md` declares its persuasive-text exemptions, or states "none" |
 
 Status lives in frontmatter, not prose. `done`/`dropped` units belong in `roadmap/archived/`.
 

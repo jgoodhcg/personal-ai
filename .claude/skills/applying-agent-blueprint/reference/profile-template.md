@@ -11,9 +11,24 @@ Personal calibration for agent interactions in this project. The live conversati
 
 ## Response calibration
 
-- Lead with the conclusion, support after; match length to the task (proportionate over exhaustive).
+Two independent axes (`[BP-WF-PROFILE]`). Classify on both, then apply both.
+
+**Length — set by whether an artifact was requested:**
+
+- [Conversation, no artifact requested → target length, e.g. "1-4 sentences"]
+- [Artifact requested → whatever size the artifact needs, with minimal framing]
+
+**Register — set by whether the content is fact or judgment:**
+
+- Factual (code explanations, output, findings, steps, errors) → short sentences, one instruction each, condition before command, `must`/`can`/`will`, one word per concept.
+- Deliberative (tradeoffs, recommendations, disagreement) → plain prose. Keep `may`/`might`/`could` where they carry real uncertainty.
+
+Other preferences:
+
+- Lead with the conclusion, support after.
 - [Explanation preference: brief | standard | thorough; explain unknowns vs ask first]
 - [Communication style: code-focused | narrative | casual | formal; high-level first vs drill-down]
+- [Override words that lift or reimpose the length cap and force a register]
 
 ## Calibration facts
 
@@ -30,6 +45,7 @@ Personal calibration for agent interactions in this project. The live conversati
 - "Brief confirmations or detailed explanations?"
 - "Should I explain things you may not know, or ask first?"
 - "Any communication preferences (formal/casual, code vs prose, high-level first)?"
+- "When I report facts or results, do you want terse technical style, or normal prose?"
 - "Solo work or a team project?"
 
 ## Calibration

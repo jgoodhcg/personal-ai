@@ -68,6 +68,7 @@ See `AGENT_BLUEPRINT.md` `Execution Modes` for the full policy.
 ## Project-Specific Rules
 
 - [constraints, data sensitivity, architectural boundaries — ground these in detection + recon]
+- [`BP-WRITE-04` exemptions: files or sections that carry persuasive voice, or "none"]
 
 ## References
 

@@ -7,18 +7,18 @@ description: Scaffolds and aligns a project's agent operating files (AGENTS.md, 
 
 This skill executes the blueprint's adoption (`[BP-ADOPT]`) and alignment (`[BP-ALIGN]`) flows. The **rules and rationale live in `AGENT_BLUEPRINT.md`** — read it for any rule you are unsure about. This file is the operator: it decides the mode, drives the steps, and points to the templates and rubric you need at each step.
 
-Core principle while generating files: **reference the blueprint, do not restate it** (`BP-INSTR-05`). Generated `AGENTS.md` should point to `AGENT_BLUEPRINT.md` for shared rules, not paste them in.
+Core principle while generating files: **reference the blueprint, do not restate it** (`BP-INSTR-05`). Generated `AGENTS.md` must point to `AGENT_BLUEPRINT.md` for shared rules, not paste them in.
 
 ## Prerequisite
 
-`AGENT_BLUEPRINT.md` must exist at the repo root, with its `references/` companion directory alongside it (commit attribution, user profile guidance, work unit example). If either is missing, copy them from the Agent Blueprint source before continuing (`[BP-ADOPT]` steps 1–2). Everything below assumes they are present.
+`AGENT_BLUEPRINT.md` must exist at the repo root, with its `references/` companion directory alongside it (commit attribution, user profile guidance, work unit example, sources). If either is missing, copy them from the Agent Blueprint source before continuing (`[BP-ADOPT]` steps 1–2). Everything below assumes they are present.
 
 ## Decide the mode
 
 - **No `AGENTS.md`, or it is missing required sections → Scaffold.**
 - **`AGENTS.md` exists and references the blueprint → Align.**
 
-When both could apply (partial setup), Scaffold the missing pieces, then Align.
+When both can apply (partial setup), Scaffold the missing pieces, then Align.
 
 ## Scaffold workflow
 
@@ -36,7 +36,7 @@ Scaffold progress:
 
 **1. Detect the project.** Inspect the repo to fill as much of `AGENTS.md` as possible without asking: language/runtime, version file (`.nvmrc`, `.python-version`, `rust-toolchain.toml`, …), lockfile, and the format/build/test/e2e commands. For a mature repo, run the git reconnaissance in [reference/recon.md](reference/recon.md) to ground project-specific rules in real churn/bug/ownership risk rather than convention.
 
-**2. Gather gaps.** Ask the user only for what you could not detect — typically the commit-trailer identity policy, "Never Run" entries, data-sensitivity constraints, and interaction profile. Ask a few targeted questions; do not extrapolate uncertain requirements (mirror the roadmap `Brain Dump to Ready` discipline).
+**2. Gather gaps.** Ask the user only for what you cannot detect — typically the commit-trailer identity policy, "Never Run" entries, data-sensitivity constraints, and interaction profile. Ask a few targeted questions; do not extrapolate uncertain requirements (mirror the roadmap `Brain Dump to Ready` discipline).
 
 **3. Write `AGENTS.md`** from [reference/agents-template.md](reference/agents-template.md), filled from steps 1–2. Set the blueprint `version:` reference to the current `AGENT_BLUEPRINT.md` frontmatter `version`. Store a trailer **template**, never concrete runtime values (`BP-CORE-09`).
 

@@ -50,7 +50,7 @@ When more than one AI model contributed to the work being committed, attribute a
 
 **Trigger — user-initiated:** interpret any statement that conveys "also credit model X" as a trigger — there is no required phrase (e.g. "also attribute gemini", "credit sonnet too, it helped earlier"). When triggered, ask the user to confirm which model(s) to add if not already specified by name.
 
-**Trigger — agent-suggested:** when there is evidence of a model switch during the current session (session metadata, tool context, or the user mentioning prior work with another model), the agent **may** ask:
+**Trigger — agent-suggested:** when there is evidence of a model switch during the current session (session metadata, tool context, or the user mentioning prior work with another model), the agent **can** ask:
 
 > "It looks like [other model] also contributed to this work. Want me to include it in the commit attribution?"
 

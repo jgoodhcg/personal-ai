@@ -16,15 +16,15 @@ priority: medium
 
 ## Intent
 
-Saved items are trapped in SQLite; the user wants them in their notes tool. A one-shot export command unblocks that without building a sync integration.
+Saved items are trapped in SQLite. The user wants them in their notes tool. A one-shot export command unblocks that without a sync integration.
 
 ## Specification
 
 - New CLI command: `bun run export --out <dir>` (default `./export`).
 - Exports every item with interaction state `saved`, one file per item, named `YYYY-MM-DD-[slug].md` from the item's published date and title.
 - Each file contains YAML frontmatter (`title`, `url`, `source`, `saved_at`) followed by the stored summary and excerpt.
-- Re-running overwrites existing files idempotently; nothing else in the DB changes.
-- Errors on a single item are logged and skipped; the command exits non-zero only if zero items export.
+- A second run overwrites existing files idempotently. Nothing else in the DB changes.
+- The command logs and skips an error on a single item. It exits non-zero only when no items export.
 
 ## Validation
 
@@ -42,4 +42,4 @@ Saved items are trapped in SQLite; the user wants them in their notes tool. A on
 
 - Interaction states: `src/db/schema.ts` (`interactions` table).
 - Existing CLI entrypoint pattern: `src/cli/ingest.ts`.
-- Slugify helper already exists in `src/lib/slug.ts` — reuse, don't add a dependency.
+- A slugify helper already exists in `src/lib/slug.ts`. Reuse it. Do not add a dependency.
